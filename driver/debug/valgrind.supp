@@ -1,0 +1,63 @@
+#
+# VALGRIND suppression file for known false positives.
+# To launch valgrind with this suppression file:
+# valgrind --time-stamp=yes --gen-suppressions=yes --suppressions=valgrind.supp -v --tool=helgrind ./vector_boost_driver
+#
+
+{
+   VbDomainsMonitorStateSet/Get
+   Helgrind:Race
+   ...
+   fun:VbDomainsMonitorState*et
+}
+
+{
+   VBAlignmentChangeStateSet/Get
+   Helgrind:Race
+   ...
+   fun:VBAlignmentChangeState*et
+}
+
+{
+   VBAlignmentSyncLostMonitorStateSet/Get
+   Helgrind:Race
+   ...
+   fun:VBAlignmentSyncLostMonitorState*et
+}
+
+{
+   VBTrafficStateSet/Get
+   Helgrind:Race
+   ...
+   fun:VBTrafficState*et
+}
+
+{
+   VbConsoleStateSet/Get
+   Helgrind:Race
+   ...
+   fun:VbConsoleState*et
+}
+
+{
+   LcmpStateSet/Get
+   Helgrind:Race
+   ...
+   fun:LcmpState*et
+}
+
+{
+   VbLogStateSet/Get
+   Helgrind:Race
+   ...
+   fun:VbLogState*et
+}
+
+{
+   VbSignalHandlerStateSet/Get
+   Helgrind:Race
+   ...
+   fun:VbSignalHandlerState*et
+}
+
+

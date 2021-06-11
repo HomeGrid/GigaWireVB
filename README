@@ -1,0 +1,366 @@
+OVERVIEW
+================================================================================
+
+This folder contains the "vector boost" program source code.
+
+"Vector boost" is a feature of G.hn that allows point-to-point channels to
+reach its maximum capacity even when interferences from other point-to-point
+channels are present.
+
+"Vector boost" is made up of two software components:
+
+  1. The "driver". This is executed in a PC directly connected to all "Domain
+     Masters" (by means of an ethernet cable).
+     The CPU load produced by the "driver" is quite low, and thus this PC does
+     not need to be top-notch.
+
+  2. The "engine". This is *typically* executed in a *different* PC (but it
+     can be the same, if desired). The amount of CPU computation required by the
+     "engine" is quite high and thus the PC should be as fast as possible.
+
+
+TYPICAL SCENARIO
+================================================================================
+
+                  -----------
+  User #1's house |EndPoint |--------------------------------------------
+                  -----------                    -----------------------|
+                                                 |   ------------------||
+                  -----------                    |   |                |||
+  User #2's house |EndPoint |---------------------   |                |||
+                  -----------                        |                |||
+                                                     |                |||
+                                    -----------      |                |||
+                    User #N's house |EndPoint |-------                |||
+                                    -----------                       ||| G.hn
+                                                                      |||
+                                                                      |||
+                                                                      |||
+                                                                      |||
+        "driver"                        Operator equipment            |||
+         ------       -------   eth    --------------------           |||
+         | PC |  eth  |     |~~~~~~~~~~| Domain master #N |------------||
+         | #1 |~~~~~~~| HUB |~~~~~~~~~~| Domain master #2 |------------||
+         |    |       |     |~~~~~~~~~~| Domain master #1 |-------------|
+         ------       -------          --------------------
+           .
+           .
+           .
+           .
+         ------
+         | PC |
+         | #2 |
+         ------
+        "engine"
+         
+NOTES:
+
+  * PC #2 and #1 can be the same computer, but they typically aren't. In fact,
+    PC #2 (where the "engine" runs) does not even need to be in the same
+    operator facilities where PC #1 is located: it could be some remote "cloud"
+    server at the other side of the planet.
+
+  * The G.hn interferences come from the fact that client connections typically
+    travel together, inside one same "big" plastic tube, as soon as they leave
+    the user's own house, until the operator station.
+
+
+HOW IT WORKS
+================================================================================
+
+The "driver" talks to the Domain Masters and receives data regarding the G.hn
+network status (interferences, throughput requirements for each domain,
+etc...).
+
+All this data is sent to the "engine" which then processes it and comes up with
+an "optimal" transmission strategy for each instant. This strategy is finally
+sent back to the "driver" which, in turn, distrubutes it among all Domain
+Masters.
+
+
+BUILDING THE SOFTWARE
+================================================================================
+
+Just type "make" and both the "driver" and "engine" binaries will be generated.
+
+  NOTE: You can set the "COMPILER" environment variable before calling "make"
+        in order to cross-compile the binaries for different target
+        architectures (check inside the "Makefile" file for more info.
+
+Then execute this:
+
+  # INSTALL_PATH=<some_folder> make install
+
+... and <some_folder> will be filled with the final binaries and configuration
+files needed to run them
+
+
+EXECUTING THE SOFTWARE
+================================================================================
+
+"driver":
+
+  1. Copy the "vector_boost_driver" binary and its configuration file to PC #1.
+  2. Open its configuration file and customize it according to your needs.
+  3. Run it like this: ./vector_boost_driver
+
+"engine":
+
+  1. Copy the "vector_boost_engine" binary and its configuration file to PC #2.
+  2. Open its configuration file and customize it according to your needs.
+  3. Run it like this: ./vector_boost_engine
+
+Note that both binaries can be controlled by means of a "console" accessible on
+ports 50000 and 60000 respectively.
+
+You can, for instance, to keep an eye on what's going on, execute these two
+commands from two different terminals:
+
+  # watch -n1 "echo report | wc -C <PC_1_ip> 50000"
+  # watch -n1 "echo report | wc -C <PC_2_ip> 60000"
+
+TIP: There is a "nice" way to execute the "engine" binary and be able to
+     display all log information *and* status on the same screen at the same
+     time is this:
+
+       # multitail -l ./vector_boost_engine -r 1 -wh 15 -l "echo -ne '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n'; echo report | nc -C localhost 60000"
+
+
+CONFIGURATION PARAMETERS
+================================================================================
+
+The "driver", when executed, reads configuration parameters from
+"vb_driver.ini".
+
+The "engine" does the same with "vb_engine.ini".
+
+This is what each of the parameters on each of those files does:
+
+  <<TODO!!>>
+
+
+DEBUGGING
+================================================================================
+
+"driver":
+
+  1. On PC #1, run "vector_boost_engine" like this:
+
+       # gdbserver host:20000 ./vector_boost_driver
+
+  2. On the PC where the source code is located, run this:
+
+       # gdb -tui vectorBoost/driver/bin/vector_boost_driver
+
+  3. Inside the gdb console, type this:
+
+       > tar rem <PC_1_ip>:20000
+       
+  4. You can now set your breakpoints and start executing the binary:
+
+       > break main
+       > continue
+
+  NOTES:
+
+    * If the PC where you compile the source code does not have direct
+      connectivity to PC #1, you can always use an SSH tunnel. It works like
+      this:
+
+        1. Imagine the PC where you compile cannot access PC #1, but it can
+           access "PC #X", and "PC #X" can access PC #1.
+
+        2. From the PC where you compile type this:
+
+             # ssh root@<PC_X_ip> -L6969:<PC_1_ip>:20000
+
+        3. Now, from the PC where you compile, open a new terminal and run
+           gdb. Then connect to localhost:6969:
+
+             > tar rem localhost:6969
+
+    * In orther to avoid having to type "tar rem ..." on the gdb console each
+      time, you can do this:
+
+        1. Create a connect_driver.txt file containing this line:
+
+             tar rem <ip>:<port>
+
+           NOTE: Remember that <ip>:<port> can be either <PC_1_ip>:20000 or
+                 localhost:6969, depending on whether you are using and ssh
+                 tunnel or not.
+
+        2. Execute gdb like this:
+
+             # gdb -tui vectorBoost/driver/bin/vector_boost_driver -x connect_driver.txt
+
+    * If you are compiling the binary with SHARED LIBRARIES (ie. you are not
+      using "-static"), you need to tell gdb *where* (on the remote system)
+      shared libraries are located.
+      If the path is the same as the one in the system where you compiled the
+      binaries (ex: "/usr/lib"), you don't need to do anything. However, if it
+      is different (ex: "/lib") you need to tell this to gdb using this command:
+
+        > set solib-search-path /lib/
+
+    * The driver makes use of signals (in particular, there is a function
+      that calls "pthread_kill(...,SIGCONT)" to stop a particular process).
+      By default, gdb will *capture* this signal and stop the program execution
+      every time.
+      In order to avoid this, you have to tell gdb to "ignore" this signal and
+      send it to the program in the same way it happens when gdb is not running.
+      In order to do this, you need to execute these two commands in the gdb
+      console, before anything else:
+
+        > handle SIGCONT pass
+        > handle SIGCONT nostop
+
+    * In addition to what we have just said regarding SIGCONT, the driver also
+      blocks other signals.
+      Because of the way this blocking is implemented, pressing "CTRL+c" while
+      in gdb will not stop the program execution. You need to manually send
+      the "TERM" signal from another console the program:
+
+        # kill -TERM <pid>
+
+      For more info red the *.h documentation of function "VbBlockSignals()"
+         
+"engine":
+
+  1. Follow the same steps as with "engine", only remember that this time:
+
+     a) You are executing the "vector_boost_engine" binary
+
+     b) You are connecting to PC #2
+
+     c) In case you want to debug the "driver" and the "engine" at the same
+        time, use different ports for gdbservers (ex: 20000 and 20001) and/or
+        the ssh tunnels (ex: 6969 and 7070)
+
+
+STATIC ANALYSIS
+================================================================================
+
+Static analysis of the source code can be performed by executing this:
+
+  # make static-analysis
+
+This command will use "clang"'s built in static analysis tool ("scan-build") to
+generate an HTML report with a fabulous level of detail.
+
+In order for this to work you need to have the latest "clang" compiler and
+additional tools installed.
+
+
+RUNTIME ANALYSIS (VALGRIND)
+================================================================================
+
+This software has also been analyzed in runtine with "valgrind".
+
+In order to run the vector boost tools with valgrind, the version 
+of the libc in the compiling machine has to be the same as in the
+machine you execute the programs. They have to be compiled without the
+-static flag and is recomended to use -O0 and -g flags. To compile, use:
+
+ # make COMPILER="x86" VECTORBOOST_VALGRIND=yes all
+
+This is how you run valgrind:
+
+  1. Memory analysis:
+  
+     1.1 Instead of directly running "vector_boost_driver" or
+         "vector_boost_driver", use the valgring wrapper, like this:
+
+           # valgrind --time-stamp=yes --gen-suppressions=yes --tool=memcheck --read-var-info=yes --track-origins=yes ./vector_boost_driver
+           # valgrind --time-stamp=yes --gen-suppressions=yes --tool=memcheck --read-var-info=yes --track-origins=yes ./vector_boost_engine
+
+     1.2 Then let them run for a while and check the errors shown. After each
+         error you can print the suppression block or ignore it, pressing 'y'
+         or 'n'. You can dump the output logs to a log file and analyze it after
+         finishing the execution by adding the option --log-file=<filename>. If 
+         you use a log file, set gen-suppressions=all
+
+     1.3 If you want to ignore a specific type of error, do this:
+
+         1.3.1 Copy the "supression block" information (from the particular
+               error you want to ignore) from the "val_xxxx.txt" output file.
+
+         1.3.2 Place that "block" inside a file called "ignore.txt"
+
+         1.3.3 Re-run "valgrind" adding the following option:
+
+                 --suppressions=ignore.txt
+
+         1.3.4 More info, here:
+         
+                 http://valgrind.org/docs/manual/manual-core.html#manual-core.suppress
+
+  2. Thread analysis:
+  
+     2.1. Before executing the thread analysys you should have cleaned as many
+          "memory" problems (from the previous step) as possible.
+
+     2.2 Once again, use the valgrind wrapper, but this time with the following
+         options:
+
+           # valgrind --time-stamp=yes --gen-suppressions=yes --read-var-info=yes --tool=helgrind ./vector_boost_driver
+           # valgrind --time-stamp=yes --gen-suppressions=yes --read-var-info=yes --tool=helgrind ./vector_boost_engine
+
+     2.3 In addition, after you have also cleaned all these thread errors, try
+         re-running the tool like this (it will detect even more thread
+         problems):
+
+           # valgrind --time-stamp=yes --gen-suppressions=yes --tool=drd ./vector_boost_driver
+           # valgrind --time-stamp=yes --gen-suppressions=yes --tool=drd ./vector_boost_engine
+
+     2.4 In both cases, you can (once again) use the "--suppressions=" option
+         to ignore repetitive (and unsolvable) problems.
+
+     Note: All registered suppressions are stored inside driver or engine/debug/helgrind.txt.
+     Most of them correspond to a read-write possible data race condition caused when one thread
+     reads one varible and other thread writes it without a mutex. The use of a mutex here will
+     not have any effect, since the access to this variable is atomic. 
+     
+RUNTIME ANALYSIS (ELECTRIC FENCE)
+================================================================================
+
+As extracted from manpage: Electric Fence is a tool which helps you detect
+two common programming bugs: software that overruns the boundaries  of  a  malloc()  
+memory  allocation,  and software  that  touches  a  memory allocation that has been 
+released by free(). Unlike other malloc() debuggers,  Electric  Fence  will  detect
+read  accesses  as  well  as  writes,  and  it  will pinpoint the exact instruction 
+that causes an error.
+
+To debug VectorBoost with Electric Fence tool, follow this steps:
+  1. Compile VectorBoost using dynamic linking, as in valgrind section:
+        # make COMPILER="x86" VECTORBOOST_VALGRIND=yes all
+        
+  2. Install Electric Fence tool in the same PC running VectorBoost, for instance, in Ubuntu:
+        # aptitude install electric-fence
+        
+  3. Run VectorBoost using  Electric Fence library and GDB:
+        # LD_PRELOAD=/usr/lib/libefence.so gdb ./vector_boost_engine
+        or
+        # LD_PRELOAD=/usr/lib/libefence.so gdb ./vector_boost_driver
+        
+  4. Insert a breakpoint in EF_Abort function to capture also "malloc's" with a size of 0:
+        (gdb) b EF_Abort
+        
+  5. Run the program: 
+        (gdb) r
+  
+  6. The debugger will stop in each memory overrun or malloc with a 0-size. 
+        
+  7. By default Electric Fence will detect memory overruns or accesses to free memory.   
+  Once all memory overruns have been fixed, it is advisable to repeat this process setting
+  EF_PROTECT_BELOW environment variable to 1. This allows Electric Fence to detect 
+  underruns (if they occur).
+        
+        
+ISSUE TRACKING
+================================================================================
+
+Please use the issues mechanism to track todos, bugs, feature requests
+
+
+ 

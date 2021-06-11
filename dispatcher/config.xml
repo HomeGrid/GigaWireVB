@@ -1,0 +1,9 @@
+<dispatcher>
+    <param name="DEFAULT_REQUEST_PORT">40011</param>
+    <param name="SERVER_NETW_IFACE">eth0</param>
+    <param name="BASE_PATH_NAME">cluster</param>
+    <param name="DATABASE_FILE">test.db</param>
+    <param name="ENGINE_CONSOLE_BASE_PORT">61000</param>
+    <param name="DISPATCHER_CONSOLE_PORT">60000</param>
+    <param name="DEFAULT_LOG_LEVEL">Debug</param>
+</dispatcher>

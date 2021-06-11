@@ -1,0 +1,128 @@
+Logic overview
+==============
+  
+  **************************************************************
+  * main()                                                     *
+  * |                                                          *
+  * `--> mq_open("/vb_log_queue")                              *
+  *      mq_open("/VB_QueueMain")                              *
+  *                                                            *
+  *      CREATE_THREAD ----------------------------------------*-------------------------------------------------------------------------------
+  *                                                            *                                                                              |
+  *                                                            *                                                                              V
+  *                                                            *          **********************************************************    ********************************************* 
+  *      lcmpSc = socket(RAW)                                  *          * LcmpReceiveThread()                                    *    * VbMainTimer()                             * 
+  *      CREATE_THREAD ----------------------------------------*--------> * |                                                      *    * |                                         * 
+  *                                                            *          * `-> while(1)                                           *    * `-> while(1)                              * 
+  *                                                            *          *     {                                                  *    *     {                                     * 
+  *                                                            *          *       switch(recv(lcmpSc))                             *    *       usleep(MACCYCLE_DURATION)           * 
+  *                                                            *          *       {                                                *    *       VbDatamodelSequenceNumberIncrease() * 
+  *                                                            *          *         <fill response buffer for this type of packet> *    *     }                                     * 
+  *                                                            *          *    }                                                   *    ********************************************* 
+  *                                                            *          *  }                             mq_send("vb_log_queue") *
+  *                                                            *          **********************************************************
+  *                                                            *
+  *                                                            *          **********************************************
+  *                                                            *          * LogProcess()                               *
+  *      CREATE_THREAD ----------------------------------------*--------> * |                                          *
+  *                                                            *          * `-> while(1)                               *
+  *                                                            *          *     {                                      *
+  *                                                            *          *       switch(mq_receive("/vb_log_queue"))  *
+  *                                                            *          *       {                                    *
+  *                                                            *          *         <print to stdout>                  *
+  *                                                            *          *          or                                *
+  *                                                            *          *         <print to file>                    *
+  *                                                            *          *       }                                    *
+  *                                                            *          *     }                                      *
+  *                                                            *          **********************************************
+  *                                                            *
+  *      CREATE_THREAD ----------------------------------------*-------------------------------------------------------------------------------------------
+  *                                                            *                                                                                          |
+  *                                                            *                                                                                          V
+  *                                                            *         **********************************************************************    *********************************************************
+  *                                                            *         * VbAlignmentProcess()                                               *    * VbExternalAgentInterfaceProtocol()                    *
+  *      CREATE_THREAD ----------------------------------------*-+-----> * |                                                                  *    * |                                                     *
+  *                                                            * |       * `-> mq_send("VB_QueueMain", ALIGNMENT_INI)                         *    * `-> vbExternalAgentSockfdP = socket(TCP)              *
+  *       send(vbExternalAgentSockfdP, "STATE_STANDBY")        * |       *                                                                    *    *                                                       *
+  *                                                            * |       *     <prepare response buffer>                                      *    *     while(1)                                          *
+  *       while(1)                                             * |       *     sendto(lcmpSc, "Obtain domain MACs", FF:FF:..:FF)              *    *     {                                                 *
+  *       {                                                    * |       *     usleep(100 ms)                                                 *    *       switch(recv(vbExternalAgentSockfdP))            *
+  *         switch(mq_receive("/VB_QueueMain"))                * |       *     <response buffer is now filled>                                *    *       {                                               *
+  *         {                                                  * |       *     <Add response to Data Model>                                   *    *         mq_send("/VB_QueueMain", <SOME_EVENT>)        *
+  *           // Any (or several) of the following calls       * |       *                                                                    *    *           or                                          *
+  *           // can be made:                                  * |       *     <prepare response buffer>                                      *    *         send(vbExternalAgentSockfdP, <response data>) *
+  *                                                            * |       *     sendto(lcmpSc, "You are the reference DM", <reference DM MAC>) *    *       }                                               *
+  *           send(vbExternalAgentSockfdP, <current state>)    * |       *     <wait for response (pthread_cond)>                             *    *     }                        mq_send("vb_log_queue")  *
+  *                                                            * |       *     <response buffer is now filled>                                *    *********************************************************
+  *           send(vbExternalAgentSockfdP, <Data Model info>)  * |       *     <Add response to Data Model>                                   *      
+  *                                                            * |       *                                                                    *      
+  *           send(vbExternalAgentSockfdP, <Measurement info>) * |       *     mq_send("/VB_QueueMain", ALIGN_DMREFCONF)                      *       ********************************************
+  *                                                            * |       *                                                                    *       * VBPsdShapeProcess()                      *
+  *           CREATE_THREAD -----------------------------------*--       *     while(1)                                                       *       * |                                        *
+  *                                                            *         *     {                                                              *       * `->  <prepare response buffer>           *
+  *           CREATE_THREAD -----------------------------------*------...*       <prepare response buffer>                                    *...--> *      sendto(lcmpSc, "PSD_SHAPE", FF..)   *
+  *                                                            *         *       <wait for DMREFCYCSTART message (pthread_cond)>              *       *      usleep(100 ms)                      *
+  *                                                            *         *       <Update Data Model>                                          *       *      <response buffer is now filled>     *
+  *                                                            *         *                                                                    *       *      send(vbExternalAgentSockfdP, <psd>) * 
+  *                                                            *         *       <prepare response buffer>                                    *       *                                          * 
+  *                                                            *         *       sendto(lcmpSc, "CYCSTART", FF:FF:..:FF)                      *       *                 mq_send("vb_log_queue")  *
+  *                                                            *         *       usleep(100 ms)                                               *       ******************************************** 
+  *                                                            *         *       <response buffer is now filled>                              *
+  *                                                            *         *       <Add response to Data Model>                                 *
+  *                                                            *         *                                                                    *
+  *                                                            *         *       mq_send("/VB_QueueMain", ALIGN_DMSALIGNED)                   *
+  *                                                            *         *     }                                                              *
+  *                                                            *         *                                           mq_send("vb_log_queue")  *
+  *                                                            *         **********************************************************************
+  *                                                            *
+  *          CREATE_THREAD ------------------------------------*--------------------------------------------------------------------------
+  *                                                            *                                                                         |
+  *                                                            *                                                                         V
+  *                                                            *         *************************************************          ******************************************************************
+  *                                                            *         *  VBTrafficProcess()                           *          * VBExecuteMeasurementProcess()                                  *
+  *          CREATE_THREAD ------------------------------------*-------> *  |                                            *          *   |                                                            *
+  *                                                            *         *  `-> mq_send("VB_QueueMain", TRAFFIC_INIT)    *          *   `-> <prepare response buffer>                                *
+  *                                                            *         *                                               *          *       sendto(lcmpSc, "MEASPLAN", FF:FF:..:FF)                  *
+  *                                                            *         *      <prepare response buffer>                *          *       usleep(100 ms)                                           *
+  *                                                            *         *      sendto(lcmpSc, "TRAFFIC_MON", FF..)      *          *       <response buffer is now filled>                          *
+  *                                                            *         *      usleep(100 ms)                           *          *       <update Data Model>                                      *
+  *                                                            *         *      <response buffer is now filled>          *          *                                                                *
+  *                                                            *         *                                               *          *       <sleep according to Data Model>                          *
+  *                                                            *         *      while(1)                                 *          *                                                                *
+  *                                                            *         *      {                                        *          *       for each DM and EP                                       *
+  *                                                            *         *        <wait for traffic report>              *          *         <prepare response buffer>                              *
+  *                                                            *         *        send(vbExternalAgentSockfdP, <report>) *          *         sendto(lcmpSc, "Give me your PSD", <reference DM MAC>) *
+  *                                                            *         *      }                                        *          *         <wait for response (pthread_cond)>                     *
+  *                                                            *         *                      mq_send("vb_log_queue")  *          *         <response buffer is now filled>                        *
+  *                                                            *         *************************************************          *       <Update Data Model>                                      *
+  *                                                            *                                                                    *                                                                *
+  *                                                            *         ***************************************************        *       <prepare response buffer>                                *
+  *                                                            *         * VbDomainsMonitorRun()                           *        *       sendto(lcmpSc, "MEASURE_BGN_IND", <mac_x>)               *
+  *           CREATE_THREAD -----------------------------------*-------> * |                                               *        *       <wait for response (pthread_cond)>                       *
+  *                                                            *         * `-> while(1)                                    *        *       <response buffer is now filled>                          *
+  *                                                            *         *    {                                            *        *                                                                *
+  *                                                            *         *      sleep(3 ms)                                *        *       <prepare response buffer>                                *
+  *                                                            *         *                                                 *        *       <wait for NOTIFY message (pthread_cond)>                 *
+  *                                                            *         *      <prepare response buffer>                  *        *       <Update Data Model>                                      *
+  *                                                            *         *      sendto(lcmpSc, "Read domain", FF...)       *        *                                                                *
+  *                                                            *         *      <wait for reponse (pthread_cond)>          *        *       <prepare response buffer>                                *
+  *                                                            *         *      <response buffer is now filled>            *        *       sendto(lcmpSc, "MEASURE_CFR_IND", <mac_x>)               *
+  *                                                            *         *                                                 *        *       <wait for response (pthread_cond)>                       *
+  *                                                            *         *      if <changes in domain>:                    *        *       <response buffer is now filled>                          *
+  *                                                            *         *        mq_send("/VB_QueueMain", NETWORK_CHANGE) *        *                                                                *
+  *                                                            *         *    }                                            *        *       <prepare response buffer>                                *
+  *                                                            *         *                        mq_send("vb_log_queue")  *        *       <wait for NOTIFY message (pthread_cond)>                 *
+  *         }                                                  *         ***************************************************        *       <Update Data Model>                                      *
+  *       }                                                    *                                                                    *                                                                *
+  *                                   mq_send("vb_log_queue")  *                                                                    *       mq_send("/VB_QueueMain", MEASURE_PROCESS_SUCCES)         *
+  **************************************************************                                                                    *                                                                *
+                                                                                                                                    *     <prepare response buffer>                                  *
+                                                                                                                                    *     sendto(lcmpSc, "MEASPLAN_CANCEL", FF:FF:..:FF)             *
+                                                                                                                                    *     usleep(100 ms)                                             *
+                                                                                                                                    *     <response buffer is now filled>                            *
+                                                                                                                                    *     <update Data Model>                                        *
+                                                                                                                                    *                                                                *
+                                                                                                                                    *     mq_send("/VB_QueueMain", MEASUREMENT_FINISH)               *
+                                                                                                                                    *                                                                *
+                                                                                                                                    *                                       mq_send("vb_log_queue")  *
+                                                                                                                                    ******************************************************************

@@ -1,0 +1,76 @@
+#
+# VALGRIND suppression file for known false positives.
+# To launch valgrind with this suppression file:
+# valgrind --time-stamp=yes --gen-suppressions=yes --suppressions=valgrind.supp -v --tool=helgrind ./vector_boost_engine
+#
+
+{
+   <insert_a_suppression_name_here>
+   Helgrind:Race
+   ...
+   fun:VbMetricsInsertEvent
+}
+
+{
+   <insert_a_suppression_name_here>
+   Helgrind:Race
+   ...
+   fun:VbThreadMetrics
+}
+
+{
+   <insert_a_suppression_name_here>
+   Helgrind:Race
+   ...
+   fun:VbMetricsMeasPlanProcess
+}
+
+{
+   <insert_a_suppression_name_here>
+   Helgrind:Race
+   ...
+   fun:VbStopMetrics
+}
+
+{
+   <insert_a_suppression_name_here>
+   Helgrind:Race
+   ...
+   fun:VbMetricsGetStatus
+}
+
+{
+   <insert_a_suppression_name_here>
+   Helgrind:Race
+   ...
+   fun:VbMainTimerStop
+}
+
+{
+   <insert_a_suppression_name_here>
+   Helgrind:Race
+   ...
+   fun:VbEngineProcessProtocolThreadStop
+}
+
+{
+   <insert_a_suppression_name_here>
+   Helgrind:Race
+   ...
+   fun:VbConsoleStateSet
+}
+
+{
+   VbSignalHandlerStateSet/Get
+   Helgrind:Race
+   ...
+   fun:VbSignalHandlerState*et
+}
+
+{
+   VbEngineClockMonitorStateSet/Get
+   Helgrind:Race
+   ...
+   fun:VbEngineClockMonitorState*et
+}
+

@@ -1,0 +1,21 @@
+MULTIGAM VECTOR BOOST ENGINE DISPATCHER
+=======================================
+
+This script was writen as an example of how to handle communication with the vector boost
+drivers in a MultiGAM environment.
+
+SYSTEM REQUIREMENTS
+===================
+Phyton 2.7 installed
+Linux enviroment
+
+CONFIGURATION PARAMETERS
+========================
+DEFAULT_REQUEST_PORT - TCP port to which drivers connect to get their engine ip and port
+SERVER_NETW_IFACE - Network interface to be used by the engine instances to listen
+BASE_PATH_NAME - Directory name to store the .ini files and reports of the engine instances
+DATABASE_FILE - File storing the sqlite database
+ENGINE_CONSOLE_BASE_PORT - TCP base port that the different engine instances will use for their console.
+			   The ports will be asigned automatically taking base + cluster id
+DISPATCHER_CONSOLE_PORT - Dispatcher console TCP port
+DEFAULT_LOG_LEVEL - DISPATCHER ENABLED LOG LEVEL. Valid values = ("Debug", "Info", "Error")

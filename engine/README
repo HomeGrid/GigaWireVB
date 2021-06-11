@@ -1,0 +1,52 @@
+Logic overview
+==============
+
+  **************************************************************
+  * main()                                                     *
+  * |                                                          *
+  * `--> mq_open("/VB_engine_QueueMain")                       *
+  *                                                            *          **********************************************            ***********************************
+  *                                                            *          * LogProcess()                               *            * VbMainTimer()                   *
+  *      CREATE_THREAD ----------------------------------------*--------> * |                                          *            * |                               *
+  *                                                            *          * `-> while(1)                               *            * `-> while(1)                    *
+  *                                                            *          *     {                                      *            *     {                           *
+  *                                                            *          *       switch(mq_receive("/vb_log_queue"))  *            *       sleep(3)                  *
+  *      CREATE_THREAD ----------------------------------------*-------...*       {                                    *...-------> *       mq_send("/vb_log_queue")  *
+  *                                                            *          *         <print to stdout>                  *            *     }                           *
+  *                                                            *          *           or                               *            ***********************************
+  *                                                            *          *         <print to file>                    *
+  *                                                            *          *       }                                    *           
+  *                                                            *          *                                            *
+  *                                                            *          **********************************************
+  *                                                            *
+  *      CREATE_THREAD ----------------------------------------*-------------------------------------------------------------------------------
+  *                                                            *                                                                              |
+  *                                                            *                                                                              V
+  *      for <each remote driver>:                             *          **********************************************                ************************************************
+  *        CREATE_THREAD --------------------------------------*--------> * VbEngineProcess()                          *                * signals_processing_thread()                  *
+  *                                                            *          * |                                          *                * |                                            *
+  *                                                            *          * `-> mq_open("DriverX_Queue")               *                * `-> while(1)                                 *
+  *      while(1)                                              *          *                                            *                *     {                                        *
+  *      {                                                     *          *     CREATE_THREAD -------------------------*----------      *       switch(sigwait())                      *
+  *        switch(mw_receive("/VB_engine_QueueMain")           *          *                                            *         |      *       {                                      *
+  *        {                                                   *          *     switch(mq_receive("DriverX_Queue")     *         |      *         mq_send("/VB_engine_QueueMain", END) *
+  *          case END:                                         *          *     {                                      *         |      *           or                                 *
+  *            exit(0)                                         *          *       send(driver->socket, <NOTIFICATION>) *         |      *         measurePlan = TRUE                   *
+  *        }                                                   *          *       CREATE_THREAD ---------------        *         |      *       }                                      *
+  *      }                                                     *          *                                   |        *         |      *     }               mq_send("/vb_log_queue") *
+  *                                   mq_send("vb_log_queue")  *          *         or                        |        *         |      ************************************************
+  **************************************************************          *                                   |        *         |
+                                                                          *       mq_send("DriverX_Queue")    |        *         |
+                                                                          *     }                             |        *         |
+                                                                          *                    mq_send("vb_log_queue") *         V
+                                                                          **********************************************     ********************************************
+                                                                                                              |              * VbEngineExternalAgentInterfaceProtocol() *
+                                                                                                              |              * |                                        *
+                                                                          *******************************     |              * `-> while(1)                             *
+                                                                          *VbEngineProcessTimeout()     * <----              *     {                                    *
+                                                                          *|                            *                    *       msg = recv(driver->socket)         *
+                                                                          *`-> pthread_cond_timedwait() *                    *       mq_send("DriverX_Queue", msg)      *
+                                                                          *******************************                    *     }                                    *
+                                                                                                                             *                  mq_send("vb_log_queue") *
+                                                                                                                             ********************************************
+
