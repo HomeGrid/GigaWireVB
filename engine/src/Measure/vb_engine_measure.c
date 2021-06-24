@@ -1821,7 +1821,7 @@ t_VB_engineErrorCode VbEngineProcessMeasurePlanTimeToFinishGet(INT32U clusterId,
 
     if (err != 0)
     {
-      VbLogPrintExt(VB_LOG_ERROR, VB_ENGINE_ALL_DRIVERS_STR, "Error %s (%s) getting current time", err, strerror(errno));
+      VbLogPrintExt(VB_LOG_ERROR, VB_ENGINE_ALL_DRIVERS_STR, "Error %d (%s) getting current time", err, strerror(errno));
       result = VB_ENGINE_ERROR_CLOCK;
     }
   }
