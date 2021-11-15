@@ -244,6 +244,8 @@ typedef struct
 static t_VbEngineProcess    vbEngineProcess;
 static t_VbEngineFSMStep    vbeFSMTransition[ENGINE_STT_LAST][ENGINE_EV_LAST];
 static CHAR                 vbEngineProcessMQBuffer[VB_ENGINE_PROCESS_MQ_MSG_SIZE];
+static t_VBDMsHistory       vbDMsHistory = { NULL, 0 };
+static pthread_mutex_t      vbDMsHistoryMutex;
 
 static const CHAR *FSMStateString[ENGINE_STT_LAST] =
   {
@@ -428,6 +430,8 @@ static void VbEngineProcessInit()
 {
   INT16U i,j;
 
+  pthread_mutex_init(&vbDMsHistoryMutex, NULL);
+
   VbEngineMeasurePlanInit();
 
   VbEngineAlignCluster0Add();
@@ -539,7 +543,7 @@ static void VbEngineProcessInit()
   vbeFSMTransition[ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY]         [ENGINE_EV_BOOST_UPDATE_END_KO]        = (t_VbEngineFSMStep){ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY,          NULL};
   vbeFSMTransition[ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY]         [ENGINE_EV_RX_NETWORK_CHANGE]          = (t_VbEngineFSMStep){ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY,          VbeFSMGenericFrameRxTransition};
   vbeFSMTransition[ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY]         [ENGINE_EV_ALIGN_ALL_CLUSTERS]         = (t_VbEngineFSMStep){ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY,          NULL};
-  vbeFSMTransition[ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY]         [ENGINE_EV_ALIGN_CLUSTER_I]            = (t_VbEngineFSMStep){ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY,          NULL};
+  vbeFSMTransition[ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY]         [ENGINE_EV_ALIGN_CLUSTER_I]            = (t_VbEngineFSMStep){ENGINE_STT_ALIGNMENT_PREPARE_I,                 VbeFSMDriverAlignClusterITransition};
   vbeFSMTransition[ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY]         [ENGINE_EV_ALIGN_CONF_SYNC]            = (t_VbEngineFSMStep){ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY,          NULL};
   vbeFSMTransition[ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY]         [ENGINE_EV_RX_CYCQUERY_RSP]            = (t_VbEngineFSMStep){ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY,          NULL};
   vbeFSMTransition[ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY]         [ENGINE_EV_CLOCK_FORCE_REQ]            = (t_VbEngineFSMStep){ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY,          NULL};
@@ -551,7 +555,6 @@ static void VbEngineProcessInit()
   vbeFSMTransition[ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY]         [ENGINE_EV_ALIGN_CHANGE]               = (t_VbEngineFSMStep){ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY,          NULL};
   vbeFSMTransition[ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY]         [ENGINE_EV_ALIGN_RESTART]              = (t_VbEngineFSMStep){ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY,          NULL};
   vbeFSMTransition[ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY]         [ENGINE_EV_RX_ALIGN_CLUSTER_I_STOP_SYNC]    = (t_VbEngineFSMStep){ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY,     NULL};
-  vbeFSMTransition[ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY]         [ENGINE_EV_ALIGN_CLUSTER_I]            = (t_VbEngineFSMStep){ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY,          NULL};
   vbeFSMTransition[ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY]         [ENGINE_EV_MEASPLAN_RESTART]           = (t_VbEngineFSMStep){ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY,          NULL};
   vbeFSMTransition[ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY]         [ENGINE_EV_MEAS_FORCE]                 = (t_VbEngineFSMStep){ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY,          NULL};
   vbeFSMTransition[ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY]         [ENGINE_EV_RX_ALIGN_CLUSTER_STOP_FAIL] = (t_VbEngineFSMStep){ENGINE_STT_DISCOVER_DOMAIN_WAIT_EMPTY,          NULL};
@@ -824,6 +827,7 @@ static void VbEngineProcessInit()
   vbeFSMTransition[ENGINE_STT_ALIGNMENT_WAIT_SYNC]                [ENGINE_EV_ALIGN_RESTART]              = (t_VbEngineFSMStep){ENGINE_STT_ALIGNMENT_CONFIG,                    VbeFSMAlignmentConfigTransition};
   vbeFSMTransition[ENGINE_STT_ALIGNMENT_WAIT_SYNC]                [ENGINE_EV_RX_TRAFFIC_AWARENESS_TRG]   = (t_VbEngineFSMStep){ENGINE_STT_ALIGNMENT_WAIT_SYNC,                 NULL};
   vbeFSMTransition[ENGINE_STT_ALIGNMENT_WAIT_SYNC]                [ENGINE_EV_RX_ALIGN_SYNC_LOST_TRG]     = (t_VbEngineFSMStep){ENGINE_STT_ALIGNMENT_WAIT_SYNC,                 NULL};
+  vbeFSMTransition[ENGINE_STT_ALIGNMENT_WAIT_SYNC]                [ENGINE_EV_RX_CYCQUERY_RSP]            = (t_VbEngineFSMStep){ENGINE_STT_ALIGNMENT_WAIT_SYNC,                 NULL};
   vbeFSMTransition[ENGINE_STT_ALIGNMENT_WAIT_SYNC]                [ENGINE_EV_CLOCK_FORCE_REQ]            = (t_VbEngineFSMStep){ENGINE_STT_CLOCK_RSP_WAIT,                      VbeFSMClockRspWaitTransition};
   vbeFSMTransition[ENGINE_STT_ALIGNMENT_WAIT_SYNC]                [ENGINE_EV_RX_NETWORK_CHANGE]          = (t_VbEngineFSMStep){ENGINE_STT_ALIGNMENT_WAIT_SYNC,                 VbeFSMGenericFrameRxTransition};
   vbeFSMTransition[ENGINE_STT_ALIGNMENT_WAIT_SYNC]                [ENGINE_EV_ALIGN_ALL_CLUSTERS]         = (t_VbEngineFSMStep){ENGINE_STT_ALIGNMENT_PREPARE_ALL,               VbeFSMDriverAlignAllClustersTransition};
@@ -1088,6 +1092,7 @@ static void VbEngineProcessInit()
   vbeFSMTransition[ENGINE_STT_MEASURING_MEASPLAN_RSP_SYNC]        [ENGINE_EV_RX_NON_EMPTY_DOMAIN_RSP]    = (t_VbEngineFSMStep){ENGINE_STT_MEASURING_MEASPLAN_RSP_SYNC,         VbeFSMAlignAllClustersTransition};
   vbeFSMTransition[ENGINE_STT_MEASURING_MEASPLAN_RSP_SYNC]        [ENGINE_EV_MEASPLAN_RESTART]           = (t_VbEngineFSMStep){ENGINE_STT_MEASURING_CANCEL_WAIT,               VbeFSMMeasPlanCancelSendTransition};
   vbeFSMTransition[ENGINE_STT_MEASURING_MEASPLAN_RSP_SYNC]        [ENGINE_EV_RX_ALIVE_SOCK_RSP]          = (t_VbEngineFSMStep){ENGINE_STT_MEASURING_MEASPLAN_RSP_SYNC,         VbeFSMGenericFrameRxTransition};
+
 
   /*** ENGINE_STT_MEASURING_MEASPLAN_END_WAIT ***/
   /*
@@ -1959,6 +1964,10 @@ static void VbEngineProcess( void *arg)
   mq_close(vbEngineProcess.wrOnlyQueueId);
   mq_close(vbEngineProcess.rdWrQueueId);
   mq_unlink(vbEngineProcess.queueName);
+  pthread_mutex_destroy(&vbDMsHistoryMutex);
+  free(vbDMsHistory.DMs);
+  vbDMsHistory.DMs = NULL;
+  vbDMsHistory.NumDMs = 0;
 
   return;
 }
@@ -2113,6 +2122,127 @@ static t_VB_engineErrorCode VbeFSMAllDriversKillAllTransition(t_VBProcessMsg *pr
 
 /************************************************************************/
 
+t_VB_engineErrorCode VbeUpdateDMsHistory(INT8U *MAC, INT32U clusterId, t_alignRole role, BOOL isAdding)
+{
+  t_VB_engineErrorCode   ret = VB_ENGINE_ERROR_NONE;
+  t_VBDMsHistory    *history;
+
+  pthread_mutex_lock(&(vbDMsHistoryMutex));
+
+  history = &vbDMsHistory;
+
+  if (MAC == NULL)
+  {
+    ret = VB_ENGINE_ERROR_BAD_ARGUMENTS;
+  }
+
+  if (ret == VB_ENGINE_ERROR_NONE)
+  {
+    INT32U i;
+
+    for (i = 0; i < history->NumDMs; i++)
+    {
+      if (!memcmp(history->DMs[i].MAC, MAC, ETH_ALEN))
+      {
+        history->DMs[i].clusterId = clusterId;
+        history->DMs[i].role = role;
+        break;
+      }
+    }
+
+    if (i == history->NumDMs)
+    {
+      history->DMs = realloc(history->DMs, (history->NumDMs + 1) * sizeof(*history->DMs));
+      memcpy(history->DMs[i].MAC, MAC, ETH_ALEN);
+      history->DMs[i].clusterId = clusterId;
+      history->DMs[i].role = role;
+      history->NumDMs++;
+    }
+
+    if (isAdding == FALSE && role == VB_ALIGN_ROLE_REF)
+    {
+      t_VBCluster *cluster;
+
+      ret = VbEngineClusterByIdGet(clusterId, &cluster);
+
+      if (ret == VB_ENGINE_ERROR_NONE)
+      {
+        if (cluster->clusterInfo.numLines > 1)
+          history->DMs[i].role = VB_ALIGN_ROLE_SLAVE;
+      }
+    }
+
+    VbLogPrintExt(VB_LOG_INFO, VB_ENGINE_ALL_DRIVERS_STR, "NumDMs in History %d.", history->NumDMs);
+
+  }
+
+  pthread_mutex_unlock(&(vbDMsHistoryMutex));
+
+  return ret;
+}
+
+/************************************************************************/
+
+t_VB_engineErrorCode VbeFindDMsClusterIdByMAC(INT8U *DMsMAC, INT32U *clusterId, t_alignRole *role)
+{
+  t_VB_engineErrorCode   ret = VB_ENGINE_ERROR_NONE;
+  t_VBDMsHistory    *history;
+  INT32U i;
+
+  pthread_mutex_lock(&(vbDMsHistoryMutex));
+
+  history = &vbDMsHistory;
+
+  if (DMsMAC == NULL || history == NULL)
+  {
+    ret = VB_ENGINE_ERROR_BAD_ARGUMENTS;
+  }
+
+  if (ret == VB_ENGINE_ERROR_NONE)
+  {
+    ret = VB_ENGINE_ERROR_NOT_FOUND;
+
+    for (i = 0; i < history->NumDMs; i++)
+    {
+      if (!memcmp(history->DMs[i].MAC, DMsMAC, ETH_ALEN))
+      {
+         if (clusterId)
+           *clusterId = history->DMs[i].clusterId;
+         if (role)
+           *role = history->DMs[i].role;
+         ret = VB_ENGINE_ERROR_NONE;
+         break;
+      }
+    }
+  }
+
+  pthread_mutex_unlock(&(vbDMsHistoryMutex));
+
+  return ret;
+}
+
+/************************************************************************/
+
+static t_VB_engineErrorCode UpdateDMsList(t_VBDriver *driver, t_domain *domain, void *args)
+{
+  t_VB_engineErrorCode   ret = VB_ENGINE_ERROR_NONE;
+  t_VBDMsHistory    *history = (t_VBDMsHistory *)args;
+
+  if (driver == NULL || domain == NULL || history == NULL)
+  {
+    ret = VB_ENGINE_ERROR_BAD_ARGUMENTS;
+  }
+
+  if (ret == VB_ENGINE_ERROR_NONE)
+  {
+    VbeUpdateDMsHistory(domain->dm.MAC, driver->clusterId, domain->dm.nodeAlignInfo.role, FALSE);
+  }
+
+  return ret;
+}
+
+/************************************************************************/
+
 static t_VB_engineErrorCode VbeFSMAllDriversKillSingleDriverTransition(t_VBProcessMsg *processMsg)
 {
   t_VB_engineErrorCode error = VB_ENGINE_ERROR_NONE;
@@ -2140,6 +2270,8 @@ static t_VB_engineErrorCode VbeFSMAllDriversKillSingleDriverTransition(t_VBProce
     driver = (t_VBDriver *)processMsg->args;
 
     VbLogPrintExt(VB_LOG_INFO, VB_ENGINE_ALL_DRIVERS_STR, "Killing driver %s",  driver->vbDriverID);
+
+    VbEngineDatamodelDomainsLoop(driver, UpdateDMsList, &vbDMsHistory);
 
     // Stop related EA thread
     VbEngineEAProtocolDriverThreadStop(driver, NULL);

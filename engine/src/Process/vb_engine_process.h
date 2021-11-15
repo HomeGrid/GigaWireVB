@@ -156,6 +156,25 @@ const CHAR *FSMEvToStrGet(t_VB_Comm_Event event);
  **/
 CHAR *VbEngineProcessQueueNameGet(void);
 
+/**
+ * @brief Find if there is associated ClusterId and role from DMs history of MAC addresses and return one when found
+ * @param[in] DMsMAC DMs MAC
+ * @param[out] clusterId found cluster Id
+ * @param[out] role previous role associated with this DMs
+ * @return @ref t_VB_engineErrorCode
+ **/
+t_VB_engineErrorCode VbeFindDMsClusterIdByMAC(INT8U *DMsMAC, INT32U *clusterId, t_alignRole *role);
+
+/**
+ * @brief Update history entry for specified DMs MAC
+ * @param[in] MAC this DMs MAC address
+ * @param[in] clusterId found cluster Id associated with this DM
+ * @param[in] role previouis role associated with this DM
+ * @param[in] isAdding is this DMs being added or removed from operation
+ * @return @ref t_VB_engineErrorCode
+ **/
+t_VB_engineErrorCode VbeUpdateDMsHistory(INT8U *MAC, INT32U clusterId, t_alignRole role, BOOL isAdding);
+
 #endif /* VB_ENGINE_PROCESS_H_ */
 /**
  * @}

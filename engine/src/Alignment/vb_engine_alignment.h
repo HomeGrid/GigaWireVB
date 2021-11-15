@@ -272,6 +272,11 @@ FP32 VbEngineAlignAdcOutRmsGet(t_domain *domain);
 t_VB_engineErrorCode VbEngineAlignClusterAdd(INT32U currentClusterId, INT32U *newClusterId, t_vbAlignClusterBuildInfo *clusterBuildInfo);
 
 /**
+ * @return @ref t_VB_engineErrorCode
+ **/
+t_VB_engineErrorCode VbEngineOldClusterAdd(INT32U oldClusterId);
+
+/**
  * @brief Update cluster info
  * @param[in] clusterId cluster Id of cluster to be updated
  * @param[in] clusterBuildInfo pointer onto cluster info to be updated
@@ -373,6 +378,14 @@ t_VB_engineErrorCode VbEngineAlignmentIdGet(INT32U clusterId, t_VBCluster *clust
  * @return @ref t_VB_engineErrorCode
  **/
 t_VB_engineErrorCode VbEngineAlignmentHasBeenCandidateReset(INT32U clusterId);
+
+/**
+ * @brief Tag specified driver with different cluster id
+ * @param[in] driver Pointer to driver structure.
+ * @param[in] clusterId Cluster Id
+ * @return @ref t_VB_engineErrorCode
+ **/
+t_VB_engineErrorCode VbEngineAlignDriverXSyncedTagY(t_VBDriver *driver, INT32U clusterId);
 
 #endif /* VB_ENGINE_ALIGNMENT_H_ */
 

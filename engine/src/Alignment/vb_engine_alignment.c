@@ -70,6 +70,7 @@
 #include "vb_engine_drivers_list.h"
 #include "vb_engine_cluster_list.h"
 #include "vb_engine_conf.h"
+#include "Process/vb_engine_process.h"
 
 /*
  ************************************************************************
@@ -261,6 +262,8 @@ static inline void AlignGhnNodeRoleSet(t_node *dm, t_alignRole role, INT32U clus
     t_alignRole prev_role = dm->nodeAlignInfo.role;
 
     dm->nodeAlignInfo.role = role;
+
+    VbeUpdateDMsHistory(dm->MAC, clusterId, role, TRUE);
 
     if (role == VB_ALIGN_ROLE_REF)
     {
@@ -1970,6 +1973,12 @@ static t_VB_engineErrorCode AlignGhnPathToRefCheck(BOOLEAN *pathOk, INT32U clust
           }
           else
           {
+            VbLogPrintExt(VB_LOG_INFO, VB_ENGINE_ALL_DRIVERS_STR, "[%-10s] Domain %s - DID %3u - Role %10s - Hops %3u - path to reference KO",
+                "Path",
+                node_to_check->dm.MACStr,
+                node_to_check->dm.devID,
+                VbEngineAlignRoleStringGet(node_to_check->dm.nodeAlignInfo.role),
+                node_to_check->dm.nodeAlignInfo.hops);
             path_ok = FALSE;
           }
         }
@@ -4229,6 +4238,78 @@ FP32 VbEngineAlignAdcOutRmsGet(t_domain *domain)
 
 /*******************************************************************/
 
+t_VB_engineErrorCode VbEngineOldClusterAdd(INT32U oldClusterId)
+{
+  t_VB_engineErrorCode     ret = VB_ENGINE_ERROR_NONE;
+  t_VBCluster             *cluster = NULL;
+
+  if (ret == VB_ENGINE_ERROR_NONE)
+  {
+    ret = VbEngineDatamodelCreateCluster(&cluster);
+  }
+
+  if (ret == VB_ENGINE_ERROR_NONE)
+  {
+    cluster->clusterInfo.clusterId = oldClusterId;
+//    cluster->clusterInfo.numLines  = clusterBuildInfo->numLinesSyncedInCluster;
+//    cluster->clusterInfo.alignRef  = (clusterBuildInfo->txNodesInfo.ref == NULL)? 0:clusterBuildInfo->txNodesInfo.ref->dm.devID;
+//    cluster->clusterInfo.numRelays = clusterBuildInfo->txNodesInfo.numRelays;
+    cluster->timeoutCnf.clusterCast.list[0] = cluster->clusterInfo.clusterId;
+    cluster->timeoutCnf.clusterCast.numCLuster = 1;
+    cluster->epChange = FALSE;
+    cluster->skipMeasPlan = FALSE;
+    cluster->syncLostFlag = FALSE;
+
+    cluster->cdtaData = (INT8U *)calloc(1, sizeof(t_clusterCdtaInfo));
+    if(cluster->cdtaData == NULL)
+    {
+      ret = VB_ENGINE_ERROR_MALLOC;
+    }
+
+    // Allocate CDTA info now as it is fixed in length and is needed if cluster goes back to align phase (The currentQosRate needs to be up to date)
+    if(ret == VB_ENGINE_ERROR_NONE)
+    {
+      t_clusterCdtaInfo *cluster_cdta_info = (t_clusterCdtaInfo *)cluster->cdtaData;
+
+      bzero(&cluster_cdta_info->stats, sizeof(cluster_cdta_info->stats));
+      bzero(&cluster_cdta_info->hist, sizeof(cluster_cdta_info->hist));
+      bzero(&cluster_cdta_info->metrics, sizeof(cluster_cdta_info->metrics));
+
+      cluster_cdta_info->finalQosRate = VbCdtaQosRateGet(0);
+      pthread_mutex_init(&(cluster_cdta_info->hist.mutex), NULL);
+    }
+
+//    for(i=0; i< clusterBuildInfo->txNodesInfo.numRelays; i++)
+//    {
+//      cluster->clusterInfo.relays[i] = clusterBuildInfo->txNodesInfo.relays[i]->dm.devID;
+//    }
+
+    VbLogPrintExt(VB_LOG_INFO, VB_ENGINE_ALL_DRIVERS_STR, "VbEngineAlignClusterAdd Cluster Id %d, numLines %d, RefDid %d",
+                  cluster->clusterInfo.clusterId, cluster->clusterInfo.numLines, cluster->clusterInfo.alignRef);
+
+  }
+
+  if (ret == VB_ENGINE_ERROR_NONE)
+  {
+    ret = VbEngineCltListClusterAdd(cluster);
+  }
+
+  if (ret != VB_ENGINE_ERROR_NONE)
+  {
+    if (cluster != NULL)
+    {
+      // Release allocated memory
+      VbEngineDatamodelClusterDel(&cluster);
+    }
+
+    VbLogPrintExt(VB_LOG_ERROR, VB_ENGINE_ALL_DRIVERS_STR, "Error %d Old Cluster Add", ret);
+  }
+
+  return ret;
+}
+
+/*******************************************************************/
+
 t_VB_engineErrorCode VbEngineAlignClusterAdd(INT32U currentClusterId, INT32U *newClusterId, t_vbAlignClusterBuildInfo *clusterBuildInfo)
 {
   t_VB_engineErrorCode     ret = VB_ENGINE_ERROR_NONE;
@@ -4698,6 +4779,39 @@ t_VB_engineErrorCode VbEngineAlignmentHasBeenCandidateReset(INT32U clusterId)
 
   // Loop through all domains
   ret = VbEngineDatamodelClusterXAllDomainsLoop(AlignHasBeenCandidateResetLoopCb, clusterId, NULL);
+
+  return ret;
+}
+
+/*******************************************************************/
+
+t_VB_engineErrorCode VbEngineAlignDriverXSyncedTagY(t_VBDriver *driver, INT32U clusterId)
+{
+  t_VB_engineErrorCode    ret = VB_ENGINE_ERROR_NONE;
+
+  if (driver == NULL)
+  {
+    ret = VB_ENGINE_ERROR_BAD_ARGUMENTS;
+  }
+
+  if (ret == VB_ENGINE_ERROR_NONE)
+  {
+    ret = VbEngineDatamodelDomainsLoop(driver, DomainSyncedLoopCb, NULL);
+  }
+
+  if (ret == VB_ENGINE_ERROR_NONE)
+  {
+    if(clusterId != 0)
+    {
+      driver->clusterId = clusterId;
+      VbLogPrintExt(VB_LOG_INFO, driver->vbDriverID, "Tagged with cluster %d", driver->clusterId);
+    }
+  }
+  else if (ret == VB_ENGINE_ERROR_NOT_SYNCED)
+  {
+    // Possible error, do not report above
+    ret = VB_ENGINE_ERROR_NONE;
+  }
 
   return ret;
 }

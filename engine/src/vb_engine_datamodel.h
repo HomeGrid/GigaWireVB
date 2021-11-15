@@ -654,6 +654,25 @@ struct s_VBCluster
   t_vbEngineClusterInfo      clusterInfo;
 };
 
+typedef struct s_VBDMsHistoryItem t_VBDMsHistoryItem;
+
+struct s_VBDMsHistoryItem
+{
+  INT8U       MAC[ETH_ALEN];
+  INT8U       status;
+  INT32S      clusterId;
+  BOOL        inactive;
+  t_alignRole role;
+};
+
+typedef struct s_VBDMsHistory t_VBDMsHistory;
+
+struct s_VBDMsHistory
+{
+  t_VBDMsHistoryItem *DMs;
+  INT32U              NumDMs;
+};
+
 /*
  ************************************************************************
  ** Public function definition
