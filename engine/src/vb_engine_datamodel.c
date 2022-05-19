@@ -2159,12 +2159,12 @@ t_VB_engineErrorCode VbEngineDatamodelListDomainsDMsAdd(t_VBDriver *driver, INT3
 
           // Init node Align info
           memset(&(new_domains[new_dm_idx].dm.nodeAlignInfo), 0, sizeof(new_domains[new_dm_idx].dm.nodeAlignInfo));
-        }
 
 #if VB_ENGINE_METRICS_ENABLED
-        VbMetricsReportDeviceEvent(VB_METRICS_EVENT_NEW_LINE,
-                                   new_domains[new_dm_idx].dm.MAC, TRUE, driver, 0, 0);
+          VbMetricsReportDeviceEvent(VB_METRICS_EVENT_NEW_LINE,
+                                     new_domains[new_dm_idx].dm.MAC, TRUE, driver, 0, 0);
 #endif
+        }
 
         if(driver->domainsList.domainsArray != NULL)
         {
