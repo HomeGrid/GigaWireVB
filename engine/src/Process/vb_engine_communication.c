@@ -394,6 +394,113 @@ static t_VB_engineErrorCode    VbEngineDomainsRespProcess(INT8U* payload, INT32U
 
 /*******************************************************************/
 
+static t_VB_engineErrorCode UpdateDMs(t_VBDriver *thisDriver, void *dms, INT16U num_changed_dms,
+                INT16U *num_changed_old_dms, BOOL *old_dm_ref_added, BOOL isAdding)
+{
+  t_VB_engineErrorCode vb_err = VB_ENGINE_ERROR_NONE;
+  INT32U               i;
+  BOOL                 found = FALSE;
+
+  if (num_changed_old_dms)
+    *num_changed_old_dms = 0;
+  if (old_dm_ref_added)
+    *old_dm_ref_added = FALSE;
+
+  if (vb_err == VB_ENGINE_ERROR_NONE)
+  {
+    t_alignRole role = VB_ALIGN_ROLE_NOT_INIT;
+    INT32U newClusterId = 0;
+
+    for(i=0; i<num_changed_dms; i++)
+    {
+      INT32U anotherClusterId = 0;
+      INT8U *dmMAC;
+
+      if (isAdding)
+      {
+        t_vbEADomainDiffRspDMAdded *added_dms = dms;
+        dmMAC = added_dms[i].dmMAC;
+      }
+      else
+      {
+        t_vbEADomainDiffRspNodeRem *rem_dms = dms;
+        dmMAC = rem_dms[i].mac;
+      }
+
+      if (vb_err == VB_ENGINE_ERROR_NONE)
+      {
+        vb_err = VbeFindDMsClusterIdByMAC(dmMAC, &anotherClusterId, &role);
+      }
+
+      if (vb_err == VB_ENGINE_ERROR_NONE)
+      {
+        found = TRUE;
+        if (newClusterId == 0)
+          newClusterId = anotherClusterId;
+        if (!newClusterId || anotherClusterId != newClusterId)
+        {
+          newClusterId = 0;
+          if (num_changed_old_dms)
+            *num_changed_old_dms = 0;
+          break;
+        }
+        else if (newClusterId)
+        {
+          if (num_changed_old_dms)
+            (*num_changed_old_dms)++;
+          VbLogPrintExt(VB_LOG_INFO, thisDriver->vbDriverID, "DMs found [%02X:%2X:%02X:%02X:%02X:%02X] -> clusterId %d, role %d",
+                        dmMAC[0],
+                        dmMAC[1],
+                        dmMAC[2],
+                        dmMAC[3],
+                        dmMAC[4],
+                        dmMAC[5],
+                        newClusterId, role);
+        }
+      }
+      else if (vb_err == VB_ENGINE_ERROR_NOT_FOUND)
+      {
+        VbLogPrintExt(VB_LOG_INFO, thisDriver->vbDriverID, "DMs not found [%02X:%2X:%02X:%02X:%02X:%02X]",
+                        dmMAC[0],
+                        dmMAC[1],
+                        dmMAC[2],
+                        dmMAC[3],
+                        dmMAC[4],
+                        dmMAC[5]);
+        vb_err = VbeUpdateDMsHistory(dmMAC, thisDriver->clusterId, VB_ALIGN_ROLE_NOT_INIT, isAdding);
+      }
+    }
+
+    if (newClusterId && found == TRUE && vb_err == VB_ENGINE_ERROR_NONE && isAdding == TRUE)
+    {
+      t_VBCluster *cluster;
+
+      vb_err = VbEngineClusterByIdGet(newClusterId, &cluster);
+      if (vb_err == VB_ENGINE_ERROR_NONE)
+      {
+        vb_err = VbEngineAlignDriverXSyncedTagY(thisDriver, newClusterId);
+      }
+      else
+      {
+        vb_err = VbEngineOldClusterAdd(newClusterId);
+        if (vb_err == VB_ENGINE_ERROR_NONE)
+        {
+          vb_err = VbEngineAlignDriverXSyncedTagY(thisDriver, newClusterId);
+        }
+        if (vb_err == VB_ENGINE_ERROR_NONE)
+        {
+          if (old_dm_ref_added)
+            *old_dm_ref_added = TRUE;
+        }
+      }
+    }
+  }
+
+  return vb_err;
+}
+
+/*******************************************************************/
+
 static t_VB_engineErrorCode    VbEngineDomainsChangeRespProcess(INT8U* payload, INT32U length, t_VBDriver *thisDriver)
 {
   t_VB_engineErrorCode vb_err = VB_ENGINE_ERROR_NONE;
@@ -402,6 +509,8 @@ static t_VB_engineErrorCode    VbEngineDomainsChangeRespProcess(INT8U* payload, 
   t_vbEADomainDiffHdrRsp report_hdr;
   INT32U               i;
   INT16U               num_added_dms;
+  INT16U               num_added_old_dms = 0;
+  BOOL                 old_dm_ref_added = FALSE;
   INT16U               num_added_eps;
   INT16U               num_rem_dms;
   INT16U               num_rem_eps;
@@ -444,6 +553,8 @@ static t_VB_engineErrorCode    VbEngineDomainsChangeRespProcess(INT8U* payload, 
 
       // Change status of existing lines from x (probably new) to PRESENT
       VbEngineLineStatusUpdate(thisDriver->clusterId, VB_DEV_PRESENT);
+
+      vb_err = UpdateDMs(thisDriver, pld_ptr, num_added_dms, &num_added_old_dms, &old_dm_ref_added, TRUE);
 
       for(i=0; i<num_added_dms; i++)
       {
@@ -521,6 +632,9 @@ static t_VB_engineErrorCode    VbEngineDomainsChangeRespProcess(INT8U* payload, 
       if(num_rem_dms > 0)
       {
         t_vbEADomainDiffRspNodeRem *rem_dms;
+
+        vb_err = UpdateDMs(thisDriver, pld_ptr, num_rem_dms, NULL, NULL, FALSE);
+
         for(i=0; i<num_rem_dms; i++)
         {
           rem_dms = (t_vbEADomainDiffRspNodeRem *)pld_ptr;
@@ -662,15 +776,23 @@ static t_VB_engineErrorCode    VbEngineDomainsChangeRespProcess(INT8U* payload, 
     else
     {
       // Full report are sent only at first connection with the driver, so send new DM event if there is any
-      if(thisDriver->domainsList.numDomains > 0)
+      if(thisDriver->domainsList.numDomains > 0 && num_added_old_dms == 0)
       {
         // At least one line in driver, Send NON EMPTY event to potentially get out of the EMPTY state
         vb_err = VbEngineProcessEvSend(thisDriver, ENGINE_EV_RX_NON_EMPTY_DOMAIN_RSP, NULL);
       }
-      else
+      else if (num_added_old_dms == 0)
       {
         // No lines in driver, put him aside in DOMAIN_WAIT state until a DM get back in
         vb_err = VbEngineProcessEvSend(thisDriver, ENGINE_EV_RX_EMPTY_DOMAIN_RSP, NULL);
+      }
+      else if (old_dm_ref_added == FALSE)
+      {
+        vb_err = VbEngineProcessEvSend(thisDriver, ENGINE_EV_RX_EMPTY_DOMAIN_RSP, NULL);
+      }
+      else
+      {
+        vb_err = VbEngineProcessEvSend(thisDriver, ENGINE_EV_ALIGN_CLUSTER_I, NULL);
       }
     }
   }
