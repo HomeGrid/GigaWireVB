@@ -60,6 +60,10 @@
 #include <mqueue.h>
 #include <libgen.h>
 
+#if (_WITH_SYSLOG_ == 1)
+#include <syslog.h>
+#endif
+
 #if (_VALGRIND_ == 1)
 #include <valgrind/helgrind.h>
 #endif
@@ -76,7 +80,9 @@
  ************************************************************************
  */
 
+#if (_WITH_SYSLOG_ == 0)
 #define VB_LOG_THREAD_NAME      ("Log")
+#endif
 
 // Single line log limits
 //
@@ -99,9 +105,11 @@
 #define VB_LOG_ENTRY_LEN        (VB_LOG_MAX_HDR_LEN + VB_LOG_MAX_LINE_LEN)
 #define VB_LOG_EXT_ENTRY_LEN    (VB_LOG_MAX_EXT_HDR_LEN + VB_LOG_MAX_LINE_LEN)
 
+#if (_WITH_SYSLOG_ == 0)
 // Chuck of data log (to file) limits
 //
 #define VB_LOG_FILENAME_LEN     99
+#endif
 
 /*
  ************************************************************************
@@ -109,6 +117,7 @@
  ************************************************************************
  */
 
+#if (_WITH_SYSLOG_ == 0)
 typedef struct
 {
   INT8U         type;            // One from "t_vbLogType"
@@ -153,6 +162,7 @@ typedef struct
   CHAR               *buffer;
   BOOLEAN             circular;
 } t_vbLogPersistent;
+#endif
 
 /*
  ************************************************************************
@@ -160,14 +170,18 @@ typedef struct
  ************************************************************************
  */
 
+#if (_WITH_SYSLOG_ == 0)
 static pthread_t    vbLogThread = 0;
+#endif
 static t_vbLogLevel vbLogVerbose;
+#if (_WITH_SYSLOG_ == 0)
 static BOOL         vbLogThreadRunning;
 static mqd_t        vbLogQueue;
 static mqd_t        vbLogQueueBlock;
 static const CHAR   *vbQueueName;
 static CHAR         vbOutputFolder[VB_LOG_FILENAME_LEN+1];
 static t_vbLogPersistent vbLogPersistent;
+#endif
 
 /*
  ************************************************************************
@@ -179,22 +193,27 @@ static t_vbLogPersistent vbLogPersistent;
 // cannot be used (ex: errors reported by the Log subsystem itself)
 static void VbLogErrorPrint(const char *fmt, ...);
 
+
+#if (_WITH_SYSLOG_ == 0)
 // Send the message to the default Log subsystem output (typically a socket, but
 // this might change in the future)
 static void VbLogWriteToDefault(const char *str);
 
 // Save the message to a file (instead of sending it to the default output).
 static void VbLogWriteToFile(const char *file_name, const char *mode, const char *str);
+#endif
 
 // Build the "log header" string (that is pre-pended to all messages sent to the
 // default log output)
 static void VbLogHdrBuild(CHAR *dst, t_vbLogLevel mode, const char *file, INT16U line, const char *function);
 
+#if (_WITH_SYSLOG_ == 0)
 // Log subsystem thread
 static void *VBLogProcess(void *arg);
 
 // Close opened resources (queues, mallocs...)
 static void VbLogDestroy(void *buffer);
+#endif
 
 /*
  ************************************************************************
@@ -204,6 +223,7 @@ static void VbLogDestroy(void *buffer);
 
 /*******************************************************************/
 
+#if (_WITH_SYSLOG_ == 0)
 static void VbLogStateSet(BOOL running)
 {
   vbLogThreadRunning = running;
@@ -215,6 +235,7 @@ static BOOL VbLogStateGet(void)
 {
   return vbLogThreadRunning;
 }
+#endif
 
 /*******************************************************************/
 
@@ -231,6 +252,7 @@ static void VbLogErrorPrint(const char *fmt, ...)
 
 /*******************************************************************/
 
+#if (_WITH_SYSLOG_ == 0)
 static void VbLogWriteToDefault(const char *str)
 {
   if (str != NULL)
@@ -279,6 +301,7 @@ static void VbLogWriteToFile(const char *file_name, const char *mode, const char
     VbLogPrint(VB_LOG_ERROR, "Bad arg (%s)", strerror(errno));
   }
 }
+#endif
 
 /*******************************************************************/
 
@@ -338,6 +361,7 @@ static void VbLogHdrBuild(CHAR *dst, t_vbLogLevel mode, const char *file, INT16U
 
 /*******************************************************************/
 
+#if (_WITH_SYSLOG_ == 0)
 static inline CHAR* PersistentLogLineGet(INT32U lineIdx)
 {
   CHAR *ret;
@@ -539,6 +563,7 @@ static void VbLogDestroy(void *buffer)
 
   printf("Closed Log Queue...\n");
 }
+#endif
 
 /*******************************************************************/
 
@@ -552,6 +577,7 @@ static void VbLogDestroy(void *buffer)
 
 INT32S VbLogInit(const char *queueName, t_vbLogLevel verboseLevel, CHAR *outputFolder, INT32U persLogNumLines, t_vbLogLevel persLogVerbose, BOOLEAN circular)
 {
+#if (_WITH_SYSLOG_ == 0)
   INT32S ret = 0;
   struct mq_attr attr;
 
@@ -593,12 +619,18 @@ INT32S VbLogInit(const char *queueName, t_vbLogLevel verboseLevel, CHAR *outputF
   VbLogPersistentReset();
 
   return ret;
+#else
+  vbLogVerbose = verboseLevel;
+
+  return 0;
+#endif
 }
 
 /*******************************************************************/
 
 BOOLEAN VbLogRun()
 {
+#if (_WITH_SYSLOG_ == 0)
   BOOLEAN return_value;
 
   VbLogStop();
@@ -615,12 +647,16 @@ BOOLEAN VbLogRun()
   }
 
   return return_value;
+#else
+  return TRUE;
+#endif
 }
 
 /*******************************************************************/
 
 void VbLogStop()
 {
+#if (_WITH_SYSLOG_ == 0)
   if (VbLogStateGet() == TRUE)
   {
     t_vbLogMsg        vb_log_msg;
@@ -639,6 +675,7 @@ void VbLogStop()
 
     printf("Stopped %s thread!\n", VB_LOG_THREAD_NAME);
   }
+#endif
 }
 
 /*******************************************************************/
@@ -648,10 +685,15 @@ void VbLogPrint_helper(const char *current_file_name, INT16U current_line_number
   va_list           args;
   CHAR             *log_line = NULL;
   CHAR             *dst = NULL;
+#if (_WITH_SYSLOG_ == 0)
   t_vbLogMsg        vb_log_msg;
+#endif
 
-  if ((verboseLevel <= vbLogVerbose) ||
-      (verboseLevel <= vbLogPersistent.verboseLevel))
+  if ((verboseLevel <= vbLogVerbose)
+#if (_WITH_SYSLOG_ == 0)
+      || (verboseLevel <= vbLogPersistent.verboseLevel)
+#endif
+      )
   {
     log_line = (CHAR *)calloc(1, VB_LOG_ENTRY_LEN+1);
 
@@ -671,6 +713,7 @@ void VbLogPrint_helper(const char *current_file_name, INT16U current_line_number
       vsnprintf(dst, VB_LOG_MAX_LINE_LEN, fmt, args);
       va_end(args);
 
+#if (_WITH_SYSLOG_ == 0)
       bzero(&vb_log_msg, sizeof(vb_log_msg));
       vb_log_msg.type = VB_LOG_EVENT_PRINT;
       vb_log_msg.msg = log_line;
@@ -689,6 +732,9 @@ void VbLogPrint_helper(const char *current_file_name, INT16U current_line_number
           VbLogErrorPrint("Error posting PRINT msg to Log queue [%s]", strerror(errno));
         }
       }
+#else
+      syslog(LOG_INFO, "%s", log_line);
+#endif
     }
   }
 }
@@ -700,11 +746,16 @@ void VbLogPrintExt_helper(const char *current_file_name, INT16U current_line_num
   va_list           args;
   CHAR             *log_line = NULL;
   CHAR             *dst = NULL;
+#if (_WITH_SYSLOG_ == 0)
   t_vbLogMsg        vb_log_msg;
+#endif
   CHAR              driver_id_str[VB_EA_DRIVER_ID_MAX_SIZE];
 
-  if ((verboseLevel <= vbLogVerbose) ||
-      (verboseLevel <= vbLogPersistent.verboseLevel))
+  if ((verboseLevel <= vbLogVerbose)
+#if (_WITH_SYSLOG_ == 0)
+      || (verboseLevel <= vbLogPersistent.verboseLevel)
+#endif
+     )
   {
     log_line = (CHAR *)calloc(1, VB_LOG_EXT_ENTRY_LEN+1);
 
@@ -734,6 +785,7 @@ void VbLogPrintExt_helper(const char *current_file_name, INT16U current_line_num
       vsnprintf(dst, VB_LOG_MAX_LINE_LEN, fmt, args);
       va_end(args);
 
+#if (_WITH_SYSLOG_ == 0)
       bzero(&vb_log_msg, sizeof(vb_log_msg));
       vb_log_msg.type = VB_LOG_EVENT_PRINT;
       vb_log_msg.msg = log_line;
@@ -749,6 +801,9 @@ void VbLogPrintExt_helper(const char *current_file_name, INT16U current_line_num
 
         VbLogErrorPrint("Error posting PRINT msg to Log queue [%s]", strerror(errno));
       }
+#else
+      syslog(LOG_INFO, "%s", log_line);
+#endif
     }
   }
 }
@@ -757,6 +812,7 @@ void VbLogPrintExt_helper(const char *current_file_name, INT16U current_line_num
 
 void VbLogSaveToTextFile(const char *file_name, const char *access_mode, int maxLen, const char *fmt, ...)
 {
+#if (_WITH_SYSLOG_ == 0)
   va_list           args;
   CHAR             *fn = NULL;
   CHAR             *log_data = NULL;
@@ -819,6 +875,7 @@ void VbLogSaveToTextFile(const char *file_name, const char *access_mode, int max
       free(log_data);
     }
   }
+#endif
 }
 
 /*******************************************************************/
@@ -830,16 +887,19 @@ t_vbLogLevel VbLogVerboseLevelGet(void)
 
 /*******************************************************************/
 
+#if (_WITH_SYSLOG_ == 0)
 void VbLogPersistentReset(void)
 {
   vbLogPersistent.currLine = 0;
   vbLogPersistent.overflows = 0;
 }
+#endif
 
 /*******************************************************************/
 
 void VbLogPersistentDump(t_writeFun writeFun)
 {
+#if (_WITH_SYSLOG_ == 0)
   if (writeFun != NULL)
   {
     INT32U   num_lines;
@@ -909,12 +969,14 @@ void VbLogPersistentDump(t_writeFun writeFun)
       }
     }
   }
+#endif
 }
 
 /*******************************************************************/
 
 BOOL VbLogConsoleCmd(void *arg, t_writeFun writeFun, char **cmd)
 {
+#if (_WITH_SYSLOG_ == 0)
   BOOL ret = FALSE;
   BOOL show_help = FALSE;
 
@@ -950,6 +1012,9 @@ BOOL VbLogConsoleCmd(void *arg, t_writeFun writeFun, char **cmd)
   }
 
   return ret;
+#else
+  return FALSE;
+#endif
 }
 
 /*******************************************************************/
