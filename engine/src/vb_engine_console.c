@@ -3095,7 +3095,7 @@ static t_VB_engineErrorCode VbEngineConsoleBasicDriversReportLoopCb(t_VBDriver *
   {
     CHAR str_addr[INET6_ADDRSTRLEN];
 
-    if (inet_ntop(AF_INET6, &driver->vbEAConnDesc.clientAddr.sin6_addr, str_addr, sizeof(str_addr)) != 0)
+    if (inet_ntop(AF_INET6, &driver->vbEAConnDesc.clientAddr.sin6_addr, str_addr, sizeof(str_addr)) == NULL)
     {
       strcpy(str_addr,"unknown");
     }
