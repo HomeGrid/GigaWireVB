@@ -309,7 +309,7 @@ static t_vbEAError VbEAConnProcess(t_vbEADesc *desc)
 {
   t_vbEAError  ret = VB_EA_ERR_NONE;
   t_vbEAOpcode rx_opcode = VB_EA_OPCODE_LAST;
-  CHAR         str_addr[INET6_ADDRSTRLEN];
+  CHAR         str_addr[INET6_ADDRSTRLEN] = "unknown";
 
   if ((desc == NULL) || (desc->sockFd == VB_EA_INVALID_FD) || (desc->processRxMsgCb == NULL))
   {
@@ -543,7 +543,7 @@ static t_vbEAError VbEAClientProcess(t_vbEADesc *desc)
         {
           socket_ready = FALSE;
           inet_ntop(AF_INET6, &desc->clientAddr.sin6_addr, str_addr, sizeof(str_addr));
-          VbLogPrint(VB_LOG_INFO, "Error on connect from port %d [%s]", str_addr, strerror(errno));
+          VbLogPrint(VB_LOG_INFO, "Error on connect from port %s [%s]", str_addr, strerror(errno));
         }
         else
         {
@@ -554,7 +554,7 @@ static t_vbEAError VbEAClientProcess(t_vbEADesc *desc)
       if ((ret == VB_EA_ERR_NONE) && (socket_ready == TRUE))
       {
         inet_ntop(AF_INET6, &desc->clientAddr.sin6_addr, str_addr, sizeof(str_addr));
-        VbLogPrint(VB_LOG_INFO, "Established a new connection with port %d...", str_addr);
+        VbLogPrint(VB_LOG_INFO, "Established a new connection with port %s...", str_addr);
 
         // Configuring socket with TCP_NODELAY option to send messages as soon as possible
         VbEaSocketConf(desc->sockFd);
