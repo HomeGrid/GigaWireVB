@@ -104,7 +104,7 @@ else ifeq ($(COMPILER),MIPS)
   SPECIAL       += -O2 -fno-strict-aliasing  -std=gnu99 -static    
 # SPECIAL       += -O0 -fno-strict-aliasing  -std=gnu99 -static -g   
 else ifeq ($(COMPILER),x86)
-  CC            := gcc-4.4
+  CC            := gcc
   AR            := ar
   #CC            := clang
   MACROS        += -D_CONFIG_LOG_=1 -D__BYTE_ORDER__=__ORDER_LITTLE_ENDIAN__ -D_CONFIG_TARGET_=_X86_
