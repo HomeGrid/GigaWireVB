@@ -828,6 +828,8 @@ static void VbEngineProcessInit()
   vbeFSMTransition[ENGINE_STT_ALIGNMENT_WAIT_SYNC]                [ENGINE_EV_RX_TRAFFIC_AWARENESS_TRG]   = (t_VbEngineFSMStep){ENGINE_STT_ALIGNMENT_WAIT_SYNC,                 NULL};
   vbeFSMTransition[ENGINE_STT_ALIGNMENT_WAIT_SYNC]                [ENGINE_EV_RX_ALIGN_SYNC_LOST_TRG]     = (t_VbEngineFSMStep){ENGINE_STT_ALIGNMENT_WAIT_SYNC,                 NULL};
   vbeFSMTransition[ENGINE_STT_ALIGNMENT_WAIT_SYNC]                [ENGINE_EV_RX_CYCQUERY_RSP]            = (t_VbEngineFSMStep){ENGINE_STT_ALIGNMENT_WAIT_SYNC,                 NULL};
+  vbeFSMTransition[ENGINE_STT_ALIGNMENT_WAIT_SYNC]                [ENGINE_EV_RX_ALIGNMODE_RSP]           = (t_VbEngineFSMStep){ENGINE_STT_ALIGNMENT_WAIT_SYNC,                 NULL};
+  vbeFSMTransition[ENGINE_STT_ALIGNMENT_WAIT_SYNC]                [ENGINE_EV_RX_ALIGNMODE_RSP_KO]        = (t_VbEngineFSMStep){ENGINE_STT_ALIGNMENT_WAIT_SYNC,                 NULL};
   vbeFSMTransition[ENGINE_STT_ALIGNMENT_WAIT_SYNC]                [ENGINE_EV_CLOCK_FORCE_REQ]            = (t_VbEngineFSMStep){ENGINE_STT_CLOCK_RSP_WAIT,                      VbeFSMClockRspWaitTransition};
   vbeFSMTransition[ENGINE_STT_ALIGNMENT_WAIT_SYNC]                [ENGINE_EV_RX_NETWORK_CHANGE]          = (t_VbEngineFSMStep){ENGINE_STT_ALIGNMENT_WAIT_SYNC,                 VbeFSMGenericFrameRxTransition};
   vbeFSMTransition[ENGINE_STT_ALIGNMENT_WAIT_SYNC]                [ENGINE_EV_ALIGN_ALL_CLUSTERS]         = (t_VbEngineFSMStep){ENGINE_STT_ALIGNMENT_PREPARE_ALL,               VbeFSMDriverAlignAllClustersTransition};

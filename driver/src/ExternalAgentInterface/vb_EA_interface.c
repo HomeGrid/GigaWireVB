@@ -1324,13 +1324,18 @@ t_VB_comErrorCode VbEANetworkChangeReportTrgSend(void)
           t_DomainData *domain_data;
           for(i=0; i<num_DM_added; i++)
           {
+            INT16U maxLengthTxop;
+            INT16U qosRate;
+
             domain_data = (t_DomainData *)pld;
             respDMAdded = (t_vbEADomainDiffRspDMAdded*)bufferResp;
             memcpy(respDMAdded->dmMAC, domain_data->mac, ETH_ALEN);
             VbDatamodelDMAddInfo1Read(domain_data->mac,
                                       respDMAdded->fwVersion,
-                                      &respDMAdded->qosRate,
-                                      &respDMAdded->maxLengthTxop);
+                                      &qosRate,
+                                      &maxLengthTxop);
+            respDMAdded->qosRate = qosRate;
+            respDMAdded->maxLengthTxop = maxLengthTxop;
             respDMAdded->dmDevId = domain_data->devID;
             respDMAdded->extSeed = domain_data->extSeed;
             respDMAdded->numEps = 0;

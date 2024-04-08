@@ -2123,7 +2123,7 @@ t_VB_engineErrorCode VbEngineDatamodelListDomainsDMsAdd(t_VBDriver *driver, INT3
           new_domains[new_dm_idx].dm.addInfo1.extSeed = dmsInfo[idx].extSeed;
           new_domains[new_dm_idx].dm.addInfo1.qosRate = dmsInfo[idx].qosRate;
           new_domains[new_dm_idx].dm.addInfo1.maxLengthTxop = dmsInfo[idx].maxLengthTxop;
-          strncpy((char *)new_domains[new_dm_idx].dm.addInfo1.fwVersion, (char *)dmsInfo[idx].fwVersion, VB_FW_VERSION_LENGTH);
+          memcpy(new_domains[new_dm_idx].dm.addInfo1.fwVersion, dmsInfo[idx].fwVersion, VB_FW_VERSION_LENGTH);
           new_domains[new_dm_idx].dm.addInfo1.fwVersion[VB_FW_VERSION_LENGTH-1] = '\0';
 
           new_domains[new_dm_idx].eps.numEPs          = dmsInfo[idx].numEps;
@@ -2268,7 +2268,7 @@ t_VB_engineErrorCode VbEngineDatamodelListDomainsEPsAdd(t_VBDriver *driver, INT3
                 node->channelSettings.boostInfo.forcedBandsBitmap = (1 | (((VbEngineConfVdslCoexGet() == TRUE)?1:0)<<1));
                 node->channelSettings.boostInfo.lastLevel = 1;
 
-                strncpy((char *)node->addInfo1.fwVersion, (char *)epsInfo[new_ep_idx].fwVersion, VB_FW_VERSION_LENGTH);
+                memcpy(node->addInfo1.fwVersion, epsInfo[new_ep_idx].fwVersion, VB_FW_VERSION_LENGTH);
                 node->addInfo1.fwVersion[VB_FW_VERSION_LENGTH-1] = '\0';
 
                 VbEngineConfProfileGet(epsInfo[new_ep_idx].epMAC,

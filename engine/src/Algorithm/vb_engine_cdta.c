@@ -1761,13 +1761,9 @@ t_vbEngineQosRate VbCdtaDefaultQosRateGet(void)
 
 /*******************************************************************/
 
-t_vbEngineQosRate VbCdtaWeightDownUpMultFactorSet(INT16U multFactor)
+void VbCdtaWeightDownUpMultFactorSet(INT16U multFactor)
 {
-  t_VB_engineErrorCode vb_err = VB_ENGINE_ERROR_NONE;
-
   cdtaGlobalConf.weights.downUpMultFactor = multFactor;
-
-  return vb_err;
 }
 
 /*******************************************************************/

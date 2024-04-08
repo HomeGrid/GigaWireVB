@@ -1166,7 +1166,6 @@ t_HGF_LCMP_ErrorCode VbLcmpNotify(t_lcmpComParams *lcmpParams)
 {
   INT8U                   *mmpl = NULL;
   t_HGF_LCMP_ErrorCode     result = HGF_LCMP_ERROR_NONE;
-  INT32S                   packets_sent = 0;
   INT16U                   mmpl_length = 0;
   const INT8U             *dest_mac = NULL;
   INT16U                   lcmp_value_length = 0;
@@ -1243,11 +1242,6 @@ t_HGF_LCMP_ErrorCode VbLcmpNotify(t_lcmpComParams *lcmpParams)
       }
 
       result = LcmpPacketSend(dest_mac, LCMP_NOTIFY_IND, mmpl_length, mmpl);
-
-      if (result == HGF_LCMP_ERROR_NONE)
-      {
-        packets_sent++;
-      }
 
       free(mmpl);
       mmpl = NULL;

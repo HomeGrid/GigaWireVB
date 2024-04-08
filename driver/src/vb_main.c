@@ -1275,7 +1275,7 @@ static t_VB_comErrorCode FSMMeasuringTransition(t_driverMsg *msg, t_driverState 
 static t_VB_comErrorCode FSMMeasurePlanFailedTransition(t_driverMsg *msg, t_driverState currStt, void *data)
 {
   t_VB_comErrorCode ret;
-  t_vbEAMeasRspErrorCode reported_error = (t_vbEAMeasRspErrorCode)data;
+  t_vbEAMeasRspErrorCode reported_error = *(t_vbEAMeasRspErrorCode *)data;
 
   // Send message before stopping measurement process to get proper PlanId
   ret = VbEAMeasurePlanErrorSend(VBMeasurementPlanIDGet(), reported_error);

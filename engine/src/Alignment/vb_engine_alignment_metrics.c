@@ -270,7 +270,7 @@ static void VbAlignMetricsReport(CHAR **buffer, INT32U *buffSize)
           VbUtilStringToBuffer(buffer, buffSize, "%s\n", event->eventData);
         }
 
-        if ((event->eventType == VB_METRICS_EVENT_ALIGN_CHECK_END))
+        if (event->eventType == VB_METRICS_EVENT_ALIGN_CHECK_END)
         {
           VbUtilStringToBuffer(buffer, buffSize, "\n");
         }

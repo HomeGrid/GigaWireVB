@@ -999,7 +999,7 @@ static t_VB_comErrorCode VBCycRespWait( t_Callbacks *callbackInstalled, struct t
     }
   }
 
-  if((result == VB_COM_ERROR_NONE))
+  if(result == VB_COM_ERROR_NONE)
   {
     BOOLEAN wait_resp;
     BOOLEAN no_resp;
@@ -1019,7 +1019,18 @@ static t_VB_comErrorCode VBCycRespWait( t_Callbacks *callbackInstalled, struct t
 
         if(htlv_notify_values != NULL)
         {
-          result = vbLcmpTempListToListAdd(final_confirm_values, htlv_notify_values);
+          t_HGF_LCMP_ErrorCode result2;
+
+          result2 = vbLcmpTempListToListAdd(final_confirm_values, htlv_notify_values);
+          if (result2 == HGF_LCMP_ERROR_NONE)
+          {
+            result = VB_COM_ERROR_NONE;
+          }
+          else
+          {
+            result = VB_COM_ERROR_LCMP;
+          }
+
           no_resp = FALSE;
         }
         else
@@ -1785,7 +1796,7 @@ t_VB_comErrorCode VbAlignmentClusterStopProcess(INT8U *msg)
 {
   t_VB_comErrorCode           ret = VB_COM_ERROR_NONE;
   t_VB_comErrorCode           err = VB_COM_ERROR_NONE;
-  t_vbEAAlignClusterStopRspErrorCode rsp_err = VB_EA_ALIGNCLUSTERSTOP_RSP_ERR_NONE;
+  t_vbEAAlignModeRspErrorCode rsp_err = VB_EA_ALIGNMODE_RSP_ERR_NONE;
   t_vbEAAlignClusterStopReq  *cluster_stop_req;
 
   if (msg == NULL)
@@ -1805,6 +1816,7 @@ t_VB_comErrorCode VbAlignmentClusterStopProcess(INT8U *msg)
     if (err != VB_COM_ERROR_NONE)
     {
       rsp_err = VB_EA_ALIGNMODE_RSP_ERR_DRV;
+      ret = VB_COM_ERROR_LCMP;
       VbLogPrint(VB_LOG_ERROR, "Error %d sending LCMP ClusterStop.req", err);
     }
   }

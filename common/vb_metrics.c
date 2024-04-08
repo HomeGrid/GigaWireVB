@@ -84,6 +84,7 @@
  */
 
 #define VB_METRICS_MAX_NR_REPORTS      (16)
+#define VB_METRICS_FIXED_NAME_SIZE     (44)
 #define VB_METRICS_OUTPUT_FOLDER       "%s/Metrics_%04d-%02d-%02d/"
 #define VB_METRICS_MSGQ_SIZE           (200)
 #define VB_METRICS_DEFAULT_BUFFER_MODE EVENTS_BUFF_CIRCULAR
@@ -155,7 +156,7 @@ static t_VB_MetricsReport vbMetricsReportsList[VB_METRICS_MAX_NR_REPORTS];
 // Array used to calculate average time values of high frequent events
 static t_VBMetricsTimeMarker vbMetricsTimeMarkersList[VB_METRICS_MAX_NR_TIME_MARKERS];
 
-static CHAR  vbMetricsCurrentPath[VB_ENGINE_METRICS_MAX_PATH_LEN]; // this path is re-generated with Start
+static CHAR  vbMetricsCurrentPath[VB_ENGINE_METRICS_MAX_PATH_LEN+VB_METRICS_FIXED_NAME_SIZE]; // this path is re-generated with Start
 static CHAR  vbOutputPath[VB_ENGINE_METRICS_MAX_PATH_LEN]; // engine reports path
 
 static pthread_mutex_t vbMetricsEventsListMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -838,7 +839,7 @@ void VbStartMetrics(void)
     localtime_r(&(vbMetricsStartupTime.tv_sec), &tmu);
     snprintf(
         vbMetricsCurrentPath,
-        (VB_ENGINE_METRICS_MAX_PATH_LEN-1),
+        sizeof(vbMetricsCurrentPath)-1,
         VB_METRICS_OUTPUT_FOLDER,
         vbOutputPath,
         tmu.tm_year + 1900, tmu.tm_mon + 1, tmu.tm_mday
@@ -1330,24 +1331,13 @@ void VbMetricsPrintEventsList(t_VBMetricsEventType type,  void (*write_fun)(cons
 
 void VbMetricsDumpAllEventsList(void (*write_fun)(const char *fmt, ...))
 {
-  INT32U i, j, count, tmp_index;
-  INT32U buffer_start_index;
+  INT32U i, j, count;
   BOOL   metrics_running;
   t_VBMetricsTimeMarker *values;
 
   metrics_running = vbMetricsRunning;
   // Avoid modifications on the list while we are printing
   VbStopMetrics();
-
-  if((vbMetricsIndexOverflow == 1) &&
-    (vbMetricsBufferMode == EVENTS_BUFF_CIRCULAR))
-  {
-    buffer_start_index = vbMetricsCurrentWrIndex;
-  }
-  else
-  {
-    buffer_start_index = 0;
-  }
 
   write_fun("\nMetrics internal buffer contents");
   write_fun("\n---------------------------------\n");
@@ -1362,9 +1352,6 @@ void VbMetricsDumpAllEventsList(void (*write_fun)(const char *fmt, ...))
   pthread_mutex_lock( &vbMetricsEventsListMutex );
   for(i=0; i<vbMetricsListLength; i++)
   {
-    tmp_index = buffer_start_index + i;
-    tmp_index %= vbMetricsListLength;
-
     if(vbMetricsEventsList[i].eventType == VB_METRICS_EVENT_CLOSE)
     {
       continue;

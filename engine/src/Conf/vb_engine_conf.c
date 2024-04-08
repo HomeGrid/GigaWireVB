@@ -1202,7 +1202,7 @@ static t_VB_engineErrorCode VbEngineConfFileRead(const char *path)
   ezxml_t              socket_alive_conf;
   ezxml_t              user_profiles;
   ezxml_t              align_params;
-  struct in6_addr      ip_addr;
+  struct in6_addr      ip_addr = { 0 };
   INT16U               num_user_profiles;
 
   // Init default values

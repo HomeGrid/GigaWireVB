@@ -790,7 +790,7 @@ static t_VB_comErrorCode VbDatamodelDomainDMsNewListBuild(INT8U *pld, INT32U *nu
     ret = VB_COM_ERROR_DATAMODEL;
   }
 
-  if ( (ret == VB_COM_ERROR_NONE) )
+  if (ret == VB_COM_ERROR_NONE)
   {
     *numNewDMs = 0;
 
@@ -840,7 +840,7 @@ static t_VB_comErrorCode VbDatamodelDomainEPsNewListBuild(INT8U *pld, INT32U *nu
     ret = VB_COM_ERROR_DATAMODEL;
   }
 
-  if ( (ret == VB_COM_ERROR_NONE) )
+  if (ret == VB_COM_ERROR_NONE)
   {
     *numNewEPs = 0;
 
@@ -988,7 +988,7 @@ static t_VB_comErrorCode VbDatamodelDomainEPsRemListBuild(INT8U *pld, INT32U *nu
     ret = VB_COM_ERROR_DATAMODEL;
   }
 
-  if ( (ret == VB_COM_ERROR_NONE) )
+  if (ret == VB_COM_ERROR_NONE)
   {
     *numRemEPs = 0;
 
@@ -1388,7 +1388,7 @@ static t_VB_comErrorCode VbDatamodelNoTLVDomainTimeOutProcess(BOOL *netChange)
   BOOLEAN                network_change_detected = FALSE;
   INT8U                 *pld = NULL;
 
-  if ( (netChange == NULL))
+  if (netChange == NULL)
   {
     ret = VB_COM_ERROR_BAD_ARGS;
   }
@@ -2871,7 +2871,7 @@ t_VB_comErrorCode VbDatamodelDMMACGet(INT32U domainIdx, INT8U *mac)
 
 t_vbDriverCountersIndex VbDatamodelEvToCounter(t_driverEvent event)
 {
-  t_vbDriverCountersIndex counter = DRIVER_EV_START;
+  t_vbDriverCountersIndex counter = (t_vbDriverCountersIndex)DRIVER_EV_START;
 
   if (event >= DRIVER_EV_LAST)
   {

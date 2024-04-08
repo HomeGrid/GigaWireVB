@@ -193,7 +193,7 @@ static BOOL VbMetricsCheckEnoughSpaceForMetrics(void)
   struct dirent *dir;
   struct stat    st;
   CHAR           dir_path[VB_ENGINE_METRICS_MAX_PATH_LEN];
-  CHAR           file_path[2 * VB_ENGINE_METRICS_MAX_PATH_LEN];
+  CHAR           file_path[2 * VB_ENGINE_METRICS_MAX_PATH_LEN + 1];
   INT32U         space;
   BOOL           res;
 
@@ -221,7 +221,7 @@ static BOOL VbMetricsCheckEnoughSpaceForMetrics(void)
         }
         //Compose path and file names
         strcpy(file_path, dir_path);
-        strncat(file_path, dir->d_name, VB_ENGINE_METRICS_MAX_PATH_LEN - 1);
+        strncat(file_path, dir->d_name, sizeof(file_path) - 1);
 
         if (stat(file_path, &st) == 0)
         {
@@ -617,12 +617,13 @@ t_VbMetricsErrorType VbMetricsReportDeviceEvent(t_VBMetricsEventType eventType, 
       info->data2 = value2;
       if(driver != NULL)
       {
-        strncpy(info->driverId, driver->vbDriverID, VB_EA_DRIVER_ID_MAX_SIZE);
+        strncpy(info->driverId, driver->vbDriverID, sizeof(info->driverId));
       }
       else
       {
-        strcpy(info->driverId, "All drivers");
+        strncpy(info->driverId, "All drivers", sizeof(info->driverId));
       }
+      info->driverId[sizeof(info->driverId)-1] = '\0';
 #if (_VALGRIND_ == 1)
       ANNOTATE_HAPPENS_BEFORE(value1);
 #endif
@@ -1289,7 +1290,7 @@ void VbMetricsBoostedLogFileReport(CHAR **buffer, INT32U *buffSize)
 
         res = VbMetricsReadNextEvent(&event);
 
-      }while((res == VB_METRICS_NO_ERROR) );
+      }while(res == VB_METRICS_NO_ERROR);
 
       vbEngineMetricsLastUSRate = us_rate / 10;
     }
@@ -1462,7 +1463,7 @@ void VbMetricsBoostedLogReport( CHAR **buffer, INT32U *buffSize)
         current_offset++;
         res = VbMetricsGetEventByIndex(&event, current_offset);
 
-      }while((res == VB_METRICS_NO_ERROR) );
+      }while(res == VB_METRICS_NO_ERROR);
 
       VbUtilStringToBuffer(buffer, buffSize,
           "=========================================================================================================================================================\n");
