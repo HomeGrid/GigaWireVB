@@ -101,7 +101,7 @@
  */
 
 static t_vbEADesc      vbEAServerDesc;
-static t_vbEADesc      vbEAConnDesc;
+static t_vbEADesc      vbEAConnDesc = { 0 };
 static BOOL            vbEAServerMode;
 
 /*
