@@ -734,6 +734,7 @@ void VbLogPrint_helper(const char *current_file_name, INT16U current_line_number
       }
 #else
       syslog(LOG_INFO, "%s", log_line);
+      free(log_line);
 #endif
     }
   }
@@ -803,6 +804,7 @@ void VbLogPrintExt_helper(const char *current_file_name, INT16U current_line_num
       }
 #else
       syslog(LOG_INFO, "%s", log_line);
+      free(log_line);
 #endif
     }
   }
