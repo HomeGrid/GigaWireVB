@@ -5716,7 +5716,7 @@ t_VB_engineErrorCode VbEngineProcessEvSend(t_VBDriver *driver, t_VB_Comm_Event e
 
   if (ret == VB_ENGINE_ERROR_NONE)
   {
-    t_VBProcessMsg       vb_process_msg;
+    t_VBProcessMsg vb_process_msg = { 0 };
 
     vb_process_msg.vbCommEvent = event;
     vb_process_msg.msg = NULL;
@@ -5773,7 +5773,7 @@ t_VB_engineErrorCode VbEngineProcessEAFrameRx(t_vbEAMsg *msg, t_VBDriver *thisDr
 
   if (res == VB_ENGINE_ERROR_NONE)
   {
-    t_VBProcessMsg vb_process_msg;
+    t_VBProcessMsg vb_process_msg = { 0 };
 
     // Convert the opcode into a event id
     vb_process_msg.vbCommEvent = event;
@@ -5819,7 +5819,7 @@ t_VB_engineErrorCode VbEngineProcessAllDriversEvSend(t_VB_Comm_Event event, void
 
   if (ret == VB_ENGINE_ERROR_NONE)
   {
-    t_VBProcessMsg vb_process_msg;
+    t_VBProcessMsg vb_process_msg = { 0 };
 
     vb_process_msg.vbCommEvent = event;
     vb_process_msg.msg = NULL;
@@ -5859,7 +5859,7 @@ t_VB_engineErrorCode VbEngineProcessClusterXDriversEvSend(t_VB_Comm_Event event,
 
   if (ret == VB_ENGINE_ERROR_NONE)
   {
-    t_VBProcessMsg vb_process_msg;
+    t_VBProcessMsg vb_process_msg = { 0 };
 
     vb_process_msg.vbCommEvent = event;
     vb_process_msg.msg = NULL;
@@ -5900,7 +5900,7 @@ t_VB_engineErrorCode VbEngineProcessClustersListDriversEvSend(t_VB_Comm_Event ev
 
   if (ret == VB_ENGINE_ERROR_NONE)
   {
-    t_VBProcessMsg vb_process_msg;
+    t_VBProcessMsg vb_process_msg = { 0 };
 
     vb_process_msg.vbCommEvent = event;
     vb_process_msg.msg = NULL;

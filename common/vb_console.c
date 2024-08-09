@@ -105,7 +105,7 @@ static INT32S          vbConsoleConnFd;
 static INT16U          vbConsolePort;
 static char           vbConsoleName[VB_CONSOLE_NAME_MAX_SIZE] = { 0 };
 
-static t_consoleCommand consoleCommands[VB_CONSOLE_COMMANDS_MAX];
+static t_consoleCommand consoleCommands[VB_CONSOLE_COMMANDS_MAX] = { 0 };
 
 /*
  ************************************************************************
@@ -603,7 +603,7 @@ static BOOL vbConsoleExecuteCommand(INT32S sk, CHAR* command)
 static void VbConsoleWrite(const char *fmt, ...)
 {
   va_list args;
-  char    output_buffer[VB_CONSOLE_BUFFER_SIZE];
+  char    output_buffer[VB_CONSOLE_BUFFER_SIZE] = { 0 };
 
   va_start(args, fmt);
   vsnprintf(output_buffer, VB_CONSOLE_BUFFER_SIZE, fmt, args);
