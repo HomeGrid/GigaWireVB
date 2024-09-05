@@ -176,11 +176,11 @@ static pthread_t    vbLogThread = 0;
 static t_vbLogLevel vbLogVerbose;
 #if (_WITH_SYSLOG_ == 0)
 static BOOL         vbLogThreadRunning;
-static mqd_t        vbLogQueue;
-static mqd_t        vbLogQueueBlock;
-static const CHAR   *vbQueueName;
-static CHAR         vbOutputFolder[VB_LOG_FILENAME_LEN+1];
-static t_vbLogPersistent vbLogPersistent;
+static mqd_t        vbLogQueue = { 0 };
+static mqd_t        vbLogQueueBlock = { 0 };
+static const CHAR   *vbQueueName = NULL;
+static CHAR         vbOutputFolder[VB_LOG_FILENAME_LEN+1] = { 0 };
+static t_vbLogPersistent vbLogPersistent = { 0 };
 #endif
 
 /*
@@ -307,10 +307,10 @@ static void VbLogWriteToFile(const char *file_name, const char *mode, const char
 
 static void VbLogHdrBuild(CHAR *dst, t_vbLogLevel mode, const char *file, INT16U line, const char *function)
 {
-  CHAR              mode_str[VB_LOG_MAX_MODE_LEN+1];
-  CHAR              file_name_str[VB_LOG_MAX_FILE_LEN+1];
-  CHAR              linenum_name_str[VB_LOG_MAX_LINENUM_LEN+1];
-  CHAR              func_name_str[VB_LOG_MAX_FUNC_LEN+1];
+  CHAR              mode_str[VB_LOG_MAX_MODE_LEN+1] = { 0 };
+  CHAR              file_name_str[VB_LOG_MAX_FILE_LEN+1] = { 0 };
+  CHAR              linenum_name_str[VB_LOG_MAX_LINENUM_LEN+1] = { 0 };
+  CHAR              func_name_str[VB_LOG_MAX_FUNC_LEN+1] = { 0 };
 
   time_t            t;
   struct            tm *tmu;

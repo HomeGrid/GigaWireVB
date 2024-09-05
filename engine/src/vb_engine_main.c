@@ -190,10 +190,10 @@ static const char *VB_COUNTERS_NAME[] =
         "ERR_CREATING_NEW_DRIVER",
     };
 
-static CHAR  engineMsgBuffer[VB_ENGINE_MAIN_MSG_SIZE];
-static t_vbQueueName vbEngineMainQueueName;
-static t_vbQueueName vbEngineLogQueueName;
-static mqd_t vbEngineQueue = (mqd_t) 0;
+static CHAR  engineMsgBuffer[VB_ENGINE_MAIN_MSG_SIZE] = { 0 };
+static t_vbQueueName vbEngineMainQueueName = { 0 };
+static t_vbQueueName vbEngineLogQueueName = { 0 };
+static mqd_t vbEngineQueue = { 0 };
 
 /*
  ************************************************************************
