@@ -3073,7 +3073,7 @@ t_VB_engineErrorCode    VbEngineAlignClusterStopRspProcess(INT8U* payload, INT32
     {
       // Some error detected, Stop cluster rejected by driver
       VbLogPrintExt(VB_LOG_ERROR, driver->vbDriverID, "Error %d reported by driver while processing stop cluster %u",
-          cluster_stop_rsp_payload->errCode);
+          cluster_stop_rsp_payload->errCode, driver->clusterId);
 
       VbCounterIncrease(VB_ENGINE_COUNTER_EV_RX_CLUSTER_STOP_RSP_KO);
       ret = VB_ENGINE_ERROR_ALIGN;
