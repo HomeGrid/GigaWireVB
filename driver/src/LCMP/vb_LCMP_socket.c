@@ -750,7 +750,7 @@ static void LcmpReceiveThreadStop()
 
     LcmpStateSet(FALSE);
 
-    if (lcmpSc > 0)
+    if (lcmpSc >= 0)
     {
       shutdown(lcmpSc, SHUT_RDWR);
       close(lcmpSc);
@@ -1460,7 +1460,7 @@ t_VB_comErrorCode LcmpMacGet( INT8U *myMac )
 void LcmpEnd ( void )
 {
   LcmpReceiveThreadStop();
-  if(lcmpSc > 0)
+  if(lcmpSc >= 0)
   {
     close(lcmpSc);
   }
