@@ -1225,7 +1225,7 @@ t_vbEAError VbEADescDestroy(t_vbEADesc *desc)
   else
   {
     // Free information used to bind and listen on socket
-    if (desc->clientInfo->ai_addr != NULL)
+    if (desc->clientInfo != NULL && desc->clientInfo->ai_addr != NULL)
     {
       freeaddrinfo(desc->clientInfo);
     }
