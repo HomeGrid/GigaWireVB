@@ -551,7 +551,10 @@ t_VB_engineErrorCode VbEngineEAInterfaceSendFrame(
 
   if (result == VB_ENGINE_ERROR_NONE)
   {
-    memcpy((char *)msg->eaPayload.msg, payload, payloadLength);
+    if ((payload != NULL) && (payloadLength > 0))
+    {
+      memcpy((char *)msg->eaPayload.msg, payload, payloadLength);
+    }
 
     // Send frame
     VbEAMsgSend(&thisDriver->vbEAConnDesc, msg);
