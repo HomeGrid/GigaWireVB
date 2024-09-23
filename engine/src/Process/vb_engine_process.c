@@ -1439,7 +1439,7 @@ static t_VB_engineErrorCode VbEngineProcessDriverCheckFSMState(t_VBDriver *thisD
 
   if (ret == VB_ENGINE_ERROR_NONE)
   {
-    state_to_check = (t_vbEngineProcessFSMState)args;
+    state_to_check = *(t_vbEngineProcessFSMState *)args;
 
     if (state_to_check >= ENGINE_STT_LAST)
     {
@@ -1477,7 +1477,7 @@ static t_VB_engineErrorCode VbEngineProcessCheckDriversSync(t_vbEngineProcessFSM
   if (ret == VB_ENGINE_ERROR_NONE)
   {
     // Check if all drivers are in the same given state
-    ret = VbEngineDatamodelDriversLoop(VbEngineProcessDriverCheckFSMState, (void *)state);
+    ret = VbEngineDatamodelDriversLoop(VbEngineProcessDriverCheckFSMState, &state);
   }
 
   return ret;
@@ -1503,7 +1503,7 @@ static t_VB_engineErrorCode VbEngineProcessCheckClustersSync(t_vbEngineProcessFS
       VbLogPrintExt(VB_LOG_DEBUG, VB_ENGINE_ALL_DRIVERS_STR, "CheckClusterSync id %d", clusters.list[i]);
 
       // Check if all drivers are in the same given state
-      ret = VbEngineDatamodelClusterXDriversLoop(VbEngineProcessDriverCheckFSMState, clusters.list[i], (void *)state);
+      ret = VbEngineDatamodelClusterXDriversLoop(VbEngineProcessDriverCheckFSMState, clusters.list[i], &state);
     }
   }
 
