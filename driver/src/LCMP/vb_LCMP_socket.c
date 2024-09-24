@@ -1227,7 +1227,7 @@ void *LcmpReceiveThread(void *arg)
   struct timeval tv;
   fd_set rfds;
   INT32U temp_field_endianness;
-  INT32U *mmh_ptr = NULL;
+  INT8U *mmh_ptr = NULL;
 
   if(lcmpSc == -1)
   {
@@ -1270,13 +1270,15 @@ void *LcmpReceiveThread(void *arg)
             srcMac = &buffer[SRCMACOFFSET];
 
             // Apply endianness transformation to MMH (2 words)
-            mmh_ptr = (INT32U*)&buffer[MMH_OFFSET];
+            mmh_ptr = (INT8U*)&buffer[MMH_OFFSET];
 
-            temp_field_endianness = _ntohl_ghn(*mmh_ptr);
-            *mmh_ptr = temp_field_endianness;
+            memcpy(&temp_field_endianness, mmh_ptr, sizeof(INT32U));
+            temp_field_endianness = _ntohl_ghn(temp_field_endianness);
+            memcpy(mmh_ptr, &temp_field_endianness, sizeof(INT32U));
 
-            temp_field_endianness = _ntohl_ghn(*(mmh_ptr + 1));
-            *(mmh_ptr + 1) = temp_field_endianness;
+            memcpy(&temp_field_endianness, mmh_ptr+4, sizeof(INT32U));
+            temp_field_endianness = _ntohl_ghn(temp_field_endianness);
+            memcpy(mmh_ptr+4, &temp_field_endianness, sizeof(INT32U));
             // End of apply endianness transformation
 
             mmh         = (t_MMH *)&buffer[MMH_OFFSET];
@@ -1503,6 +1505,8 @@ t_HGF_LCMP_ErrorCode LcmpExecute( void )
 static t_HGF_LCMP_ErrorCode LcmpHeaderBuild(INT32U length, t_LCMP_OPCODE opcode, INT32U numSegments, INT32U segmNumber, t_MMH *mmh)
 {
   t_HGF_LCMP_ErrorCode ret = HGF_LCMP_ERROR_NONE;
+  INT8U *mmh_ptr = NULL;
+  INT32U temp_field_endianness;
 
   if (mmh == NULL)
   {
@@ -1511,9 +1515,6 @@ static t_HGF_LCMP_ErrorCode LcmpHeaderBuild(INT32U length, t_LCMP_OPCODE opcode,
 
   if (ret == HGF_LCMP_ERROR_NONE)
   {
-    INT32U *mmh_ptr = NULL;
-    INT32U temp_field_endianness;
-
     bzero(mmh, sizeof(*mmh));
     mmh->Length = length;
     mmh->OPCODE = opcode;
@@ -1524,12 +1525,14 @@ static t_HGF_LCMP_ErrorCode LcmpHeaderBuild(INT32U length, t_LCMP_OPCODE opcode,
     mmh->fsb = 1; // Force start of sequence to consider all vectorboost LCMP messages as "NEW"
 
     // Apply endianness transformation to MMH (2 words)
-    mmh_ptr = (INT32U *)mmh;
-    temp_field_endianness = _htonl_ghn(*mmh_ptr);
-    *mmh_ptr = temp_field_endianness;
+    mmh_ptr = (INT8U *)mmh;
+    memcpy(&temp_field_endianness, mmh_ptr, sizeof(INT32U));
+    temp_field_endianness = _htonl_ghn(temp_field_endianness);
+    memcpy(mmh_ptr, &temp_field_endianness, sizeof(INT32U));
 
-    temp_field_endianness = _htonl_ghn(*(mmh_ptr + 1));
-    *(mmh_ptr + 1) = temp_field_endianness;
+    memcpy(&temp_field_endianness, mmh_ptr+4, sizeof(INT32U));
+    temp_field_endianness = _htonl_ghn(temp_field_endianness);
+    memcpy(mmh_ptr+4, &temp_field_endianness, sizeof(INT32U));
     // End of apply endianness transformation
   }
 

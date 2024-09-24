@@ -222,9 +222,8 @@ t_VB_engineErrorCode VbEngineCdtaRespProcess(INT8U* payload, INT32U length, t_VB
 /**
  * @brief Set CDTA weight Down Up multiplication factor
  * @param[in] multFactor down up mult factor
- * @return @ref t_VB_engineErrorCode
  **/
-t_vbEngineQosRate VbCdtaWeightDownUpMultFactorSet(INT16U multFactor);
+void VbCdtaWeightDownUpMultFactorSet(INT16U multFactor);
 
 /**
  * @brief Update BPS info from traffic report

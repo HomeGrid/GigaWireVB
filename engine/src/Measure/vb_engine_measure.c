@@ -1459,20 +1459,23 @@ t_VB_engineErrorCode    VbEngineMeasureCancelRespProcess(INT8U* payload, INT32U 
   {
     INT8U plan_id;
 
-    VbEngineMeasurePlanIdGet(driver->clusterId, &plan_id);
-    if (plan_id != measure_cancel_payload->planID)
+    vb_err = VbEngineMeasurePlanIdGet(driver->clusterId, &plan_id);
+    if (vb_err == VB_ENGINE_ERROR_NONE)
     {
-      // Measure cancel rsp received from different Plan Id, ignore it
+      if (plan_id != measure_cancel_payload->planID)
+      {
+        // Measure cancel rsp received from different Plan Id, ignore it
 
-      VbLogPrintExt(VB_LOG_WARNING, driver->vbDriverID, "EAMeasurePlanCancel.cnf received with error : Invalid Plan Id %u; expected  %u",
-          measure_cancel_payload->planID, plan_id);
+        VbLogPrintExt(VB_LOG_WARNING, driver->vbDriverID, "EAMeasurePlanCancel.cnf received with error : Invalid Plan Id %u; expected  %u",
+            measure_cancel_payload->planID, plan_id);
 
-      vb_err = VB_ENGINE_ERROR_INVALID_PLANID;
-    }
-    else
-    {
-      VbLogPrintExt(VB_LOG_DEBUG, driver->vbDriverID, "Measure Plan %u cancelled with status %d",
-          measure_cancel_payload->planID, measure_cancel_payload->status);
+        vb_err = VB_ENGINE_ERROR_INVALID_PLANID;
+      }
+      else
+      {
+        VbLogPrintExt(VB_LOG_DEBUG, driver->vbDriverID, "Measure Plan %u cancelled with status %d",
+            measure_cancel_payload->planID, measure_cancel_payload->status);
+      }
     }
   }
 

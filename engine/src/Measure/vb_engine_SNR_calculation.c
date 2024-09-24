@@ -1030,7 +1030,7 @@ static t_VB_engineErrorCode VbChannelCapacityBandCalculate(INT8U spacing, INT16U
   float c_aprox_acum  = 0;
   float max_bpc  = 0;
 
-  if((snr == NULL))
+  if(snr == NULL)
   {
     result = VB_ENGINE_ERROR_BAD_ARGUMENTS;
   }

@@ -43,10 +43,6 @@ SPECIAL       :=
 TARGET_LIST   := x86 MIPS ARMV7b ARM64 ARMV7
 MACROS        := -D_X86_=0 -D_MIPS_=1 -D_ARMV7_=2 -D_ARMV7b_=3 -D_ARM64_=4 -D_WITH_SYSLOG_=1
 
-ifeq ($(COMPILER),$(filter $(COMPILER), MIPS x86)) 
-	MACROS        += -D__ORDER_BIG_ENDIAN__=0 -D__ORDER_LITTLE_ENDIAN__=1 
-endif
-
 ifeq ($(COMPILER),ARMV7)
   ifeq ($(ARMV7_CROSS), )
     $(error No compiler variable path defined)
@@ -104,7 +100,7 @@ else ifeq ($(COMPILER),MIPS)
   SPECIAL       += -O2 -fno-strict-aliasing  -std=gnu99 -static    
 # SPECIAL       += -O0 -fno-strict-aliasing  -std=gnu99 -static -g   
 else ifeq ($(COMPILER),x86)
-  CC            := gcc-4.4
+  CC            := gcc
   AR            := ar
   #CC            := clang
   MACROS        += -D_CONFIG_LOG_=1 -D__BYTE_ORDER__=__ORDER_LITTLE_ENDIAN__ -D_CONFIG_TARGET_=_X86_

@@ -828,6 +828,8 @@ static void VbEngineProcessInit()
   vbeFSMTransition[ENGINE_STT_ALIGNMENT_WAIT_SYNC]                [ENGINE_EV_RX_TRAFFIC_AWARENESS_TRG]   = (t_VbEngineFSMStep){ENGINE_STT_ALIGNMENT_WAIT_SYNC,                 NULL};
   vbeFSMTransition[ENGINE_STT_ALIGNMENT_WAIT_SYNC]                [ENGINE_EV_RX_ALIGN_SYNC_LOST_TRG]     = (t_VbEngineFSMStep){ENGINE_STT_ALIGNMENT_WAIT_SYNC,                 NULL};
   vbeFSMTransition[ENGINE_STT_ALIGNMENT_WAIT_SYNC]                [ENGINE_EV_RX_CYCQUERY_RSP]            = (t_VbEngineFSMStep){ENGINE_STT_ALIGNMENT_WAIT_SYNC,                 NULL};
+  vbeFSMTransition[ENGINE_STT_ALIGNMENT_WAIT_SYNC]                [ENGINE_EV_RX_ALIGNMODE_RSP]           = (t_VbEngineFSMStep){ENGINE_STT_ALIGNMENT_WAIT_SYNC,                 NULL};
+  vbeFSMTransition[ENGINE_STT_ALIGNMENT_WAIT_SYNC]                [ENGINE_EV_RX_ALIGNMODE_RSP_KO]        = (t_VbEngineFSMStep){ENGINE_STT_ALIGNMENT_WAIT_SYNC,                 NULL};
   vbeFSMTransition[ENGINE_STT_ALIGNMENT_WAIT_SYNC]                [ENGINE_EV_CLOCK_FORCE_REQ]            = (t_VbEngineFSMStep){ENGINE_STT_CLOCK_RSP_WAIT,                      VbeFSMClockRspWaitTransition};
   vbeFSMTransition[ENGINE_STT_ALIGNMENT_WAIT_SYNC]                [ENGINE_EV_RX_NETWORK_CHANGE]          = (t_VbEngineFSMStep){ENGINE_STT_ALIGNMENT_WAIT_SYNC,                 VbeFSMGenericFrameRxTransition};
   vbeFSMTransition[ENGINE_STT_ALIGNMENT_WAIT_SYNC]                [ENGINE_EV_ALIGN_ALL_CLUSTERS]         = (t_VbEngineFSMStep){ENGINE_STT_ALIGNMENT_PREPARE_ALL,               VbeFSMDriverAlignAllClustersTransition};
@@ -1437,7 +1439,7 @@ static t_VB_engineErrorCode VbEngineProcessDriverCheckFSMState(t_VBDriver *thisD
 
   if (ret == VB_ENGINE_ERROR_NONE)
   {
-    state_to_check = (t_vbEngineProcessFSMState)args;
+    state_to_check = *(t_vbEngineProcessFSMState *)args;
 
     if (state_to_check >= ENGINE_STT_LAST)
     {
@@ -1475,7 +1477,7 @@ static t_VB_engineErrorCode VbEngineProcessCheckDriversSync(t_vbEngineProcessFSM
   if (ret == VB_ENGINE_ERROR_NONE)
   {
     // Check if all drivers are in the same given state
-    ret = VbEngineDatamodelDriversLoop(VbEngineProcessDriverCheckFSMState, (void *)state);
+    ret = VbEngineDatamodelDriversLoop(VbEngineProcessDriverCheckFSMState, &state);
   }
 
   return ret;
@@ -1501,7 +1503,7 @@ static t_VB_engineErrorCode VbEngineProcessCheckClustersSync(t_vbEngineProcessFS
       VbLogPrintExt(VB_LOG_DEBUG, VB_ENGINE_ALL_DRIVERS_STR, "CheckClusterSync id %d", clusters.list[i]);
 
       // Check if all drivers are in the same given state
-      ret = VbEngineDatamodelClusterXDriversLoop(VbEngineProcessDriverCheckFSMState, clusters.list[i], (void *)state);
+      ret = VbEngineDatamodelClusterXDriversLoop(VbEngineProcessDriverCheckFSMState, clusters.list[i], &state);
     }
   }
 
